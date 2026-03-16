@@ -1,0 +1,507 @@
+{
+  "name": "Computing and Engineering",
+  "shortName": "SCE",
+  "apps2526": 1561,
+  "apps2627": 1714,
+  "pctChange": 9.8,
+  "children": [
+    {
+      "name": "Computing BSc SW/FT Programmes",
+      "shortName": "CC100",
+      "fullName": "CC100 - Computing BSc SW/FT Programmes",
+      "apps2526": 460,
+      "apps2627": 452,
+      "pctChange": -1.7,
+      "children": [
+        {
+          "name": "Computer Science with Cyber Security BSc(Hons)",
+          "shortName": "C129UUFHQ",
+          "fullName": "C129UUFHQ - Computer Science with Cyber Security BSc(Hons)",
+          "apps2526": 144,
+          "apps2627": 203,
+          "pctChange": 41.0
+        },
+        {
+          "name": "Computer Science BSc(Hons)",
+          "shortName": "C184UUFHQ",
+          "fullName": "C184UUFHQ - Computer Science BSc(Hons)",
+          "apps2526": 123,
+          "apps2627": 124,
+          "pctChange": 0.8
+        },
+        {
+          "name": "Computer Science with Games Programming BSc(Hons)",
+          "shortName": "C186UUFHQ",
+          "fullName": "C186UUFHQ - Computer Science with Games Programming BSc(Hons)",
+          "apps2526": 40,
+          "apps2627": 28,
+          "pctChange": -30.0
+        },
+        {
+          "name": "Computer Science with Artificial Intelligence BSc(Hons)",
+          "shortName": "C473UUFHQ",
+          "fullName": "C473UUFHQ - Computer Science with Artificial Intelligence BSc(Hons)",
+          "apps2526": 53,
+          "apps2627": 79,
+          "pctChange": 49.1
+        },
+        {
+          "name": "Computing BSc(Hons)",
+          "shortName": "G407UUFHQ",
+          "fullName": "G407UUFHQ - Computing BSc(Hons)",
+          "apps2526": 100,
+          "apps2627": 18,
+          "pctChange": -82.0
+        }
+      ]
+    },
+    {
+      "name": "Applied Computing (Top-up) BSc (Hons) FT",
+      "shortName": "CC141",
+      "fullName": "CC141 - Applied Computing (Top-up) BSc (Hons) FT",
+      "apps2526": 2,
+      "apps2627": 3,
+      "pctChange": 50.0,
+      "children": [
+        {
+          "name": "Applied Computing (Top-up) BSc(Hons)",
+          "shortName": "G409UUFHQ",
+          "fullName": "G409UUFHQ - Applied Computing (Top-up) BSc(Hons)",
+          "apps2526": 2,
+          "apps2627": 3,
+          "pctChange": 50.0
+        }
+      ]
+    },
+    {
+      "name": "IT (Top-up) Pathways 1FT",
+      "shortName": "CC1491",
+      "fullName": "CC1491 - IT (Top-up) Pathways 1FT",
+      "apps2526": 1,
+      "apps2627": 1,
+      "pctChange": 0.0,
+      "children": [
+        {
+          "name": "Information Technology (Top-up) BSc(Hons)",
+          "shortName": "C107UUFHQ",
+          "fullName": "C107UUFHQ - Information Technology (Top-up) BSc(Hons)",
+          "apps2526": 1,
+          "apps2627": 1,
+          "pctChange": 0.0
+        }
+      ]
+    },
+    {
+      "name": "Software Engineering BSc SW/FT Pathways",
+      "shortName": "CC156",
+      "fullName": "CC156 - Software Engineering BSc SW/FT Pathways",
+      "apps2526": 71,
+      "apps2627": 96,
+      "pctChange": 35.2,
+      "children": [
+        {
+          "name": "Software Engineering BSc(Hons)",
+          "shortName": "G600UUFHQ",
+          "fullName": "G600UUFHQ - Software Engineering BSc(Hons)",
+          "apps2526": 71,
+          "apps2627": 96,
+          "pctChange": 35.2
+        }
+      ]
+    },
+    {
+      "name": "Information Systems BSc SW/FT Pathways",
+      "shortName": "CC157",
+      "fullName": "CC157 - Information Systems BSc SW/FT Pathways",
+      "apps2526": 48,
+      "apps2627": 53,
+      "pctChange": 10.4,
+      "children": [
+        {
+          "name": "Information Technology BSc(Hons)",
+          "shortName": "C206UUFHQ",
+          "fullName": "C206UUFHQ - Information Technology BSc(Hons)",
+          "apps2526": 48,
+          "apps2627": 53,
+          "pctChange": 10.4
+        }
+      ]
+    },
+    {
+      "name": "Computer Games Programmes BA/BSC SW/FT",
+      "shortName": "CC172",
+      "fullName": "CC172 - Computer Games Programmes BA/BSC SW/FT",
+      "apps2526": 185,
+      "apps2627": 138,
+      "pctChange": -25.4,
+      "children": [
+        {
+          "name": "Games Development (Design) BA(Hons)",
+          "shortName": "C475UUFHQ",
+          "fullName": "C475UUFHQ - Games Development (Design) BA(Hons)",
+          "apps2526": 75,
+          "apps2627": 58,
+          "pctChange": -22.7
+        },
+        {
+          "name": "Games Development (Production) BSc(Hons)",
+          "shortName": "C476UUFHQ",
+          "fullName": "C476UUFHQ - Games Development (Production) BSc(Hons)",
+          "apps2526": 44,
+          "apps2627": 29,
+          "pctChange": -34.1
+        },
+        {
+          "name": "Games Development (Art) BA(Hons)",
+          "shortName": "C477UUFHQ",
+          "fullName": "C477UUFHQ - Games Development (Art) BA(Hons)",
+          "apps2526": 66,
+          "apps2627": 51,
+          "pctChange": -22.7
+        }
+      ]
+    },
+    {
+      "name": "BEng(Hons) Civil Engineering Programmes SW/FT",
+      "shortName": "NC100",
+      "fullName": "NC100 - BEng(Hons) Civil Engineering Programmes SW/FT",
+      "apps2526": 45,
+      "apps2627": 65,
+      "pctChange": 44.4,
+      "children": [
+        {
+          "name": "Civil Engineering BEng(Hons)",
+          "shortName": "N104UUFHQ",
+          "fullName": "N104UUFHQ - Civil Engineering BEng(Hons)",
+          "apps2526": 45,
+          "apps2627": 65,
+          "pctChange": 44.4
+        }
+      ]
+    },
+    {
+      "name": "BEng(Hons) Electrical Programme",
+      "shortName": "NE1001",
+      "fullName": "NE1001 - BEng(Hons) Electrical Programme",
+      "apps2526": 49,
+      "apps2627": 57,
+      "pctChange": 16.3,
+      "children": [
+        {
+          "name": "Electronic and Electrical Engineering BEng(Hons)",
+          "shortName": "H600UUFHQ1",
+          "fullName": "H600UUFHQ1 - Electronic and Electrical Engineering BEng(Hons)",
+          "apps2526": 42,
+          "apps2627": 45,
+          "pctChange": 7.1
+        },
+        {
+          "name": "Electronic and Communication Engineering BEng(Hons)",
+          "shortName": "H640UUFHQ1",
+          "fullName": "H640UUFHQ1 - Electronic and Communication Engineering BEng(Hons)",
+          "apps2526": 0,
+          "apps2627": 4,
+          "pctChange": 100.0
+        },
+        {
+          "name": "Electronic Engineering and Computer Systems BEng(Hons)",
+          "shortName": "GH46UUFHQ1",
+          "fullName": "GH46UUFHQ1 - Electronic Engineering and Computer Systems BEng(Hons)",
+          "apps2526": 7,
+          "apps2627": 8,
+          "pctChange": 14.3
+        }
+      ]
+    },
+    {
+      "name": "Electronic/Electrical Engineering (Top-up) BEng(H)",
+      "shortName": "NE140",
+      "fullName": "NE140 - Electronic/Electrical Engineering (Top-up) BEng(H)",
+      "apps2526": 12,
+      "apps2627": 6,
+      "pctChange": -50.0,
+      "children": [
+        {
+          "name": "Electronic Engineering (Top-up) BEng(Hons)",
+          "shortName": "H603UUFHQ",
+          "fullName": "H603UUFHQ - Electronic Engineering (Top-up) BEng(Hons)",
+          "apps2526": 10,
+          "apps2627": 6,
+          "pctChange": -40.0
+        },
+        {
+          "name": "Electronic and Communication Engineering (Top-up) BEng(Hons)",
+          "shortName": "H604UUFHQ",
+          "fullName": "H604UUFHQ - Electronic and Communication Engineering (Top-up) BEng(Hons)",
+          "apps2526": 2,
+          "apps2627": 0,
+          "pctChange": -100.0
+        }
+      ]
+    },
+    {
+      "name": "MEng/BEng(Hons) Mechanical Programme",
+      "shortName": "NM1000",
+      "fullName": "NM1000 - MEng/BEng(Hons) Mechanical Programme",
+      "apps2526": 87,
+      "apps2627": 86,
+      "pctChange": -1.1,
+      "children": [
+        {
+          "name": "Mechanical Engineering MEng",
+          "shortName": "H303UUFHQ",
+          "fullName": "H303UUFHQ - Mechanical Engineering MEng",
+          "apps2526": 20,
+          "apps2627": 28,
+          "pctChange": 40.0
+        },
+        {
+          "name": "Automotive and Motorsport Engineering MEng",
+          "shortName": "H332UUFHQ",
+          "fullName": "H332UUFHQ - Automotive and Motorsport Engineering MEng",
+          "apps2526": 61,
+          "apps2627": 51,
+          "pctChange": -16.4
+        },
+        {
+          "name": "Mechatronic Engineering MEng",
+          "shortName": "N464UUFHQ",
+          "fullName": "N464UUFHQ - Mechatronic Engineering MEng",
+          "apps2526": 6,
+          "apps2627": 7,
+          "pctChange": 16.7
+        }
+      ]
+    },
+    {
+      "name": "BEng(Hons) Mechanical Programme",
+      "shortName": "NM1001",
+      "fullName": "NM1001 - BEng(Hons) Mechanical Programme",
+      "apps2526": 205,
+      "apps2627": 208,
+      "pctChange": 1.5,
+      "children": [
+        {
+          "name": "Mechanical Engineering BEng(Hons)",
+          "shortName": "N115UUFHQ",
+          "fullName": "N115UUFHQ - Mechanical Engineering BEng(Hons)",
+          "apps2526": 87,
+          "apps2627": 101,
+          "pctChange": 16.1
+        },
+        {
+          "name": "Mechatronic Engineering BEng(Hons)",
+          "shortName": "N364UUFHQ",
+          "fullName": "N364UUFHQ - Mechatronic Engineering BEng(Hons)",
+          "apps2526": 21,
+          "apps2627": 19,
+          "pctChange": -9.5
+        },
+        {
+          "name": "Automotive and Motorsport Engineering BEng(Hons)",
+          "shortName": "N419UUFHQ",
+          "fullName": "N419UUFHQ - Automotive and Motorsport Engineering BEng(Hons)",
+          "apps2526": 97,
+          "apps2627": 88,
+          "pctChange": -9.3
+        }
+      ]
+    },
+    {
+      "name": "Mechanical Engineering (Top-up) BEng(Hons)",
+      "shortName": "NM140",
+      "fullName": "NM140 - Mechanical Engineering (Top-up) BEng(Hons)",
+      "apps2526": 17,
+      "apps2627": 14,
+      "pctChange": -17.6,
+      "children": [
+        {
+          "name": "Mechanical Engineering (Top-up) BEng(Hons)",
+          "shortName": "H302UUFHQ",
+          "fullName": "H302UUFHQ - Mechanical Engineering (Top-up) BEng(Hons)",
+          "apps2526": 17,
+          "apps2627": 14,
+          "pctChange": -17.6
+        }
+      ]
+    },
+    {
+      "name": "Engineering Foundation Year",
+      "shortName": "NX100",
+      "fullName": "NX100 - Engineering Foundation Year",
+      "apps2526": 17,
+      "apps2627": 25,
+      "pctChange": 47.1,
+      "children": [
+        {
+          "name": "Engineering Foundation Year",
+          "shortName": "H108UUFHQ",
+          "fullName": "H108UUFHQ - Engineering Foundation Year",
+          "apps2526": 17,
+          "apps2627": 25,
+          "pctChange": 47.1
+        }
+      ]
+    },
+    {
+      "name": "BSc (Hons) Computing with Foundation Year SW/FT",
+      "shortName": "CC1001",
+      "fullName": "CC1001 - BSc (Hons) Computing with Foundation Year SW/FT",
+      "apps2526": 116,
+      "apps2627": 164,
+      "pctChange": 41.4,
+      "children": [
+        {
+          "name": "Computer Science with Foundation Year BSc(Hons)",
+          "shortName": "C045UUFHQ",
+          "fullName": "C045UUFHQ - Computer Science with Foundation Year BSc(Hons)",
+          "apps2526": 23,
+          "apps2627": 35,
+          "pctChange": 52.2
+        },
+        {
+          "name": "Computer Science with Games Programming with Foundation Year BSc(Hons)",
+          "shortName": "C047UUFHQ",
+          "fullName": "C047UUFHQ - Computer Science with Games Programming with Foundation Year BSc(Hons)",
+          "apps2526": 10,
+          "apps2627": 6,
+          "pctChange": -40.0
+        },
+        {
+          "name": "Computer Science with Cyber Security with Foundation Year BSc(Hons)",
+          "shortName": "C043UUFHQ",
+          "fullName": "C043UUFHQ - Computer Science with Cyber Security with Foundation Year BSc(Hons)",
+          "apps2526": 47,
+          "apps2627": 74,
+          "pctChange": 57.4
+        },
+        {
+          "name": "Computer Science with Artificial Intelligence with Foundation Year BSc(Hons)",
+          "shortName": "C041UUFHQ",
+          "fullName": "C041UUFHQ - Computer Science with Artificial Intelligence with Foundation Year BSc(Hons)",
+          "apps2526": 12,
+          "apps2627": 26,
+          "pctChange": 116.7
+        },
+        {
+          "name": "Computing with Foundation Year BSc(Hons)",
+          "shortName": "C049UUFHQ",
+          "fullName": "C049UUFHQ - Computing with Foundation Year BSc(Hons)",
+          "apps2526": 7,
+          "apps2627": 4,
+          "pctChange": -42.9
+        },
+        {
+          "name": "Software Engineering with Foundation Year BSc(Hons)",
+          "shortName": "C051UUFHQ",
+          "fullName": "C051UUFHQ - Software Engineering with Foundation Year BSc(Hons)",
+          "apps2526": 17,
+          "apps2627": 19,
+          "pctChange": 11.8
+        }
+      ]
+    },
+    {
+      "name": "BEng (Hons) Engineering Degrees with Foundation Year SW/FT",
+      "shortName": "NM1002",
+      "fullName": "NM1002 - BEng (Hons) Engineering Degrees with Foundation Year SW/FT",
+      "apps2526": 231,
+      "apps2627": 326,
+      "pctChange": 41.1,
+      "children": [
+        {
+          "name": "Civil Engineering with Foundation Year BEng(Hons)",
+          "shortName": "N010UUFHQ",
+          "fullName": "N010UUFHQ - Civil Engineering with Foundation Year BEng(Hons)",
+          "apps2526": 58,
+          "apps2627": 60,
+          "pctChange": 3.4
+        },
+        {
+          "name": "Electronic and Electrical Engineering with Foundation Year BEng(Hons)",
+          "shortName": "N014UUFHQ",
+          "fullName": "N014UUFHQ - Electronic and Electrical Engineering with Foundation Year BEng(Hons)",
+          "apps2526": 23,
+          "apps2627": 49,
+          "pctChange": 113.0
+        },
+        {
+          "name": "Automotive and Motorsport Engineering with Foundation Year BEng(Hons)",
+          "shortName": "N004UUFHQ",
+          "fullName": "N004UUFHQ - Automotive and Motorsport Engineering with Foundation Year BEng(Hons)",
+          "apps2526": 70,
+          "apps2627": 99,
+          "pctChange": 41.4
+        },
+        {
+          "name": "Mechanical Engineering with Foundation Year BEng(Hons)",
+          "shortName": "N006UUFHQ",
+          "fullName": "N006UUFHQ - Mechanical Engineering with Foundation Year BEng(Hons)",
+          "apps2526": 58,
+          "apps2627": 95,
+          "pctChange": 63.8
+        },
+        {
+          "name": "Mechatronic Engineering with Foundation Year BEng(Hons)",
+          "shortName": "N008UUFHQ",
+          "fullName": "N008UUFHQ - Mechatronic Engineering with Foundation Year BEng(Hons)",
+          "apps2526": 13,
+          "apps2627": 11,
+          "pctChange": -15.4
+        },
+        {
+          "name": "Electronic Engineering and Computer Systems with Foundation Year BEng(Hons)",
+          "shortName": "N016UUFHQ",
+          "fullName": "N016UUFHQ - Electronic Engineering and Computer Systems with Foundation Year BEng(Hons)",
+          "apps2526": 5,
+          "apps2627": 9,
+          "pctChange": 80.0
+        },
+        {
+          "name": "Electronic and Communication Engineering with Foundation Year BEng(Hons)",
+          "shortName": "N012UUFHQ",
+          "fullName": "N012UUFHQ - Electronic and Communication Engineering with Foundation Year BEng(Hons)",
+          "apps2526": 4,
+          "apps2627": 3,
+          "pctChange": -25.0
+        }
+      ]
+    },
+    {
+      "name": "MEng Civil Engineering Programmes SW/FT",
+      "shortName": "NC1001",
+      "fullName": "NC1001 - MEng Civil Engineering Programmes SW/FT",
+      "apps2526": 11,
+      "apps2627": 15,
+      "pctChange": 36.4,
+      "children": [
+        {
+          "name": "Civil Engineering MEng",
+          "shortName": "N107UUFHQ",
+          "fullName": "N107UUFHQ - Civil Engineering MEng",
+          "apps2526": 11,
+          "apps2627": 15,
+          "pctChange": 36.4
+        }
+      ]
+    },
+    {
+      "name": "MEng/BEng(Hons) Electrical Programme",
+      "shortName": "NE1000",
+      "fullName": "NE1000 - MEng/BEng(Hons) Electrical Programme",
+      "apps2526": 4,
+      "apps2627": 5,
+      "pctChange": 25.0,
+      "children": [
+        {
+          "name": "Electronic and Electrical Engineering MEng",
+          "shortName": "H611UUFHQ",
+          "fullName": "H611UUFHQ - Electronic and Electrical Engineering MEng",
+          "apps2526": 4,
+          "apps2627": 5,
+          "pctChange": 25.0
+        }
+      ]
+    }
+  ]
+}

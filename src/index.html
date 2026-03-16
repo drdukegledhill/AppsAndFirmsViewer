@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCE UG Applications — Sunburst</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Dual sunburst layout ── */
+    #sunburst-area {
+      position: fixed;
+      top: var(--topbar-h);
+      left: 0;
+      right: 25vw;
+      bottom: 36px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sunburst-titles {
+      display: flex;
+      height: 32px;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .sunburst-title {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .sunburst-title:first-child {
+      border-right: 1px solid var(--border);
+    }
+
+    .sunburst-row {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    .centre-icon-list {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .centre-icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 120ms, color 120ms, border-color 120ms;
+    }
+    .centre-icon-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .centre-icon-btn:hover {
+      background: var(--bg-panel2);
+      color: var(--text);
+    }
+
+    .layout-mode-btn.active {
+      color: #38bdf8;
+      border-color: #38bdf866;
+      background: #38bdf814;
+    }
+
+    .sync-lock-btn.locked {
+      color: #22c55e;
+      border-color: #22c55e66;
+      background: #22c55e14;
+    }
+
+    .sunburst-pane {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .sunburst-pane:first-child {
+      border-right: 1px solid var(--border);
+    }
+
+    .sunburst-pane svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* ── Right info panel ── */
+    #info-panel {
+      position: fixed;
+      top: var(--topbar-h);
+      right: 0;
+      width: 25vw;
+      bottom: 0;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 18px;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    #info-panel .info-photo-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+    #info-panel .info-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #2E3040;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0.8;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    #info-panel .info-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    #info-panel .info-dept {
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 14px;
+      letter-spacing: 0.04em;
+    }
+    #info-panel .info-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+    #info-panel .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 0;
+    }
+    #info-panel .info-row-label {
+      font-weight: 600;
+      color: var(--text-dim);
+      min-width: 72px;
+      flex-shrink: 0;
+    }
+    #info-panel .info-section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 12px 0 6px;
+    }
+    #info-panel .info-centres {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    #info-panel .info-centres li {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    #info-panel .info-centre-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    #info-panel .info-empty {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 40px;
+    }
+
+    .arc-path {
+      cursor: pointer;
+      transition: opacity 150ms;
+    }
+    .arc-path:hover { opacity: 0.85; }
+    .arc-label {
+      pointer-events: none;
+      font-size: 7px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      fill: #E8EAED;
+      dominant-baseline: middle;
+      text-anchor: middle;
+    }
+
+    /* ── Breadcrumbs (one per pane) ── */
+    .pane-breadcrumb {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    .pane-breadcrumb span { color: var(--text); }
+    .pane-breadcrumb .sep { color: var(--text-dim); }
+    .pane-breadcrumb .bc-link { pointer-events: auto; cursor: pointer; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
+    .pane-breadcrumb .bc-link:hover { color: var(--text); text-decoration-color: var(--text-muted); }
+
+    /* ── Back buttons ── */
+    .pane-back-btn {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms, color 120ms, background 120ms;
+      z-index: 10;
+    }
+    .pane-back-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .pane-back-btn:hover {
+      background: var(--bg-panel2);
+      color: var(--text);
+    }
+
+    /* ── Colour legend panel ── */
+    #colour-panel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      max-width: 410px;
+    }
+    .colour-panel-heading {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .legend-scale {
+      min-width: 180px;
+    }
+    .legend-bar {
+      display: flex;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 2px;
+    }
+    .legend-bar-segment {
+      flex: 1;
+    }
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+    .legend-inline-note {
+      font-size: 9px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    #version {
+      position: fixed;
+      bottom: 10px;
+      left: 12px;
+      font-size: 10px;
+      color: #444;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ── Import CSV button ── */
+    .topbar-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 150ms, color 150ms, border-color 150ms;
+    }
+    .topbar-btn:hover {
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+    .topbar-btn:active {
+      background: rgba(255,255,255,0.14);
+    }
+    .topbar-btn.active {
+      color: #22c55e;
+      border-color: #22c55e66;
+      background: #22c55e14;
+    }
+
+    /* ── Dataset scope flag ── */
+    .scope-flag {
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      max-width: 320px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .scope-flag::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .scope-flag.scope-uni {
+      border-color: #38bdf866;
+      color: #93c5fd;
+      background: #38bdf814;
+    }
+    .scope-flag.scope-uni::before {
+      background: #38bdf8;
+    }
+    .scope-flag.scope-school {
+      border-color: #22c55e66;
+      color: #86efac;
+      background: #22c55e14;
+    }
+    .scope-flag.scope-school::before {
+      background: #22c55e;
+    }
+
+    /* ── Toast notification ── */
+    #import-toast {
+      position: fixed;
+      bottom: 52px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #22c55e;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 300ms, transform 300ms;
+      z-index: 100;
+    }
+    #import-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Summary stats bar ── */
+    #stats-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 25vw;
+      height: 36px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      font-size: 12px;
+      color: var(--text-muted);
+      z-index: 10;
+    }
+    .stat-value {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 class="topbar-title">UG Applications and Firms Viewer</h1>
+      <div id="data-scope-flag" class="scope-flag" aria-live="polite">Scope: No dataset loaded</div>
+    </div>
+    <div class="topbar-right">
+      <input type="file" id="csv-file-input" accept=".csv" style="display:none" />
+      <button id="import-csv-btn" class="topbar-btn" title="Import CSV">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1v10M4 7l4 4 4-4"/>
+          <path d="M2 13h12"/>
+        </svg>
+        Import CSV
+      </button>
+      <nav id="colour-panel" aria-label="Colour legend">
+        <div class="colour-panel-heading">% Change YoY</div>
+        <div class="legend-scale">
+          <div class="legend-bar" id="legend-bar"></div>
+          <div class="legend-labels">
+            <span>-100%</span>
+            <span>0%</span>
+            <span>+100%</span>
+          </div>
+        </div>
+        <div class="legend-inline-note">Size = 26/27 · Colour = YoY</div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Dual sunburst area -->
+  <div id="sunburst-area">
+    <div class="sunburst-titles">
+      <div class="sunburst-title">Total Applications</div>
+      <div class="sunburst-title">Total Firms</div>
+    </div>
+    <div class="sunburst-row">
+      <div class="sunburst-pane" id="pane-apps">
+        <div class="pane-breadcrumb" id="breadcrumb-apps"></div>
+        <button class="pane-back-btn" id="back-btn-apps" aria-label="Go back">← back</button>
+      </div>
+      <div class="sunburst-pane" id="pane-firms">
+        <div class="pane-breadcrumb" id="breadcrumb-firms"></div>
+        <button class="pane-back-btn" id="back-btn-firms" aria-label="Go back">← back</button>
+      </div>
+    </div>
+    <div class="centre-icon-list" aria-label="Pane controls">
+      <button id="layout-mode-btn" class="centre-icon-btn layout-mode-btn" aria-label="Layout mode" title="Layout mode"></button>
+      <button id="sync-lock-btn" class="centre-icon-btn sync-lock-btn" aria-label="Sync panes" title="Sync panes"></button>
+    </div>
+  </div>
+
+  <aside id="info-panel">
+    <div class="info-empty">Hover or click an arc to see details</div>
+  </aside>
+
+  <div id="stats-bar"></div>
+
+  <div id="version">v0.2</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script type="module" src="sunburst.js"></script>
+  <script>
+    // Build gradient legend bar
+    const bar = document.getElementById('legend-bar');
+    const steps = 20;
+    for (let i = 0; i < steps; i++) {
+      const pct = -100 + (200 * i / (steps - 1));
+      const seg = document.createElement('div');
+      seg.className = 'legend-bar-segment';
+      const t = Math.abs(pct) / 100;
+      if (pct < 0) {
+        seg.style.background = `rgb(${Math.round(90 + (239-90)*t)}, ${Math.round(97 + (68-97)*t)}, ${Math.round(114 + (68-114)*t)})`;
+      } else {
+        seg.style.background = `rgb(${Math.round(90 + (34-90)*t)}, ${Math.round(97 + (197-97)*t)}, ${Math.round(114 + (94-114)*t)})`;
+      }
+      bar.appendChild(seg);
+    }
+  </script>
+</body>
+</html>
