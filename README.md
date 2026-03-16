@@ -43,6 +43,21 @@ npm run tauri build
 
 Build artefacts are written under `src-tauri/target/`.
 
+## GitHub Builds
+
+GitHub Actions is configured to build macOS and Windows desktop packages and attach them to a draft GitHub Release.
+
+To publish a new build:
+
+```bash
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+You can also run the workflow manually from the Actions tab and provide a release tag.
+
+The generated binaries are currently unsigned, so macOS Gatekeeper and Windows SmartScreen may show warnings.
+
 ## CSV Notes
 
 The parser expects the exported CSV to contain two side-by-side tables:
