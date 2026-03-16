@@ -24,6 +24,7 @@ jobs:
       matrix:
         os:
           - macos-latest
+          - ubuntu-latest
           - windows-latest
 
     steps:
@@ -46,6 +47,16 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
@@ -65,7 +76,7 @@ jobs:
           tagName: ${{ steps.release_meta.outputs.tag }}
           releaseName: Applications and Firms Viewer ${{ steps.release_meta.outputs.tag }}
           releaseBody: |
-            Automated desktop build for macOS and Windows.
+            Automated desktop build for macOS, Linux, and Windows.
 
             These binaries are unsigned and may trigger platform security warnings.
           releaseDraft: true

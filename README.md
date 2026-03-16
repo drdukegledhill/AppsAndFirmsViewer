@@ -27,6 +27,15 @@ It supports both single-school datasets and whole-university datasets, keeps bot
 npm install
 ```
 
+## Get The App
+
+You have two ways to use the app:
+
+- Build it locally from this repository.
+- Download a packaged build from the GitHub Releases page once a release has been published.
+
+For packaged builds, open the Releases page on GitHub and download the installer or bundle for your platform.
+
 ## Run In Development
 
 ```bash
@@ -43,9 +52,11 @@ npm run tauri build
 
 Build artefacts are written under `src-tauri/target/`.
 
+This is the right option if you want to test local changes before publishing a release.
+
 ## GitHub Builds
 
-GitHub Actions is configured to build macOS and Windows desktop packages and attach them to a draft GitHub Release.
+GitHub Actions is configured to build macOS, Linux, and Windows desktop packages and attach them to a draft GitHub Release.
 
 To publish a new build:
 
