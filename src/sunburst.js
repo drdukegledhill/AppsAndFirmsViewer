@@ -21,6 +21,12 @@ const layoutState = {
   latestMeta: null,
 };
 
+const THEME_STORAGE_KEY = 'app-theme';
+const THEMES = {
+  DARK: 'dark',
+  LIGHT: 'light',
+};
+
 const LOCK_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3"></path><rect x="5" y="10" width="14" height="10" rx="2"></rect><circle cx="12" cy="15" r="1"></circle></svg>`;
 const UNLOCK_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 10V7a5 5 0 0 0-9.8-1.4"></path><rect x="5" y="10" width="14" height="10" rx="2"></rect><circle cx="12" cy="15" r="1"></circle></svg>`;
 const LAYOUT_VALUE_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"></path><rect x="5" y="11" width="5" height="8" rx="1"></rect><rect x="10" y="7" width="5" height="12" rx="1"></rect><rect x="15" y="4" width="4" height="15" rx="1"></rect></svg>`;
@@ -45,6 +51,52 @@ function updateLayoutModeButtonUI() {
     ? 'Layout: Compare (shared geometry)'
     : 'Layout: Value (independent geometry)';
   btn.setAttribute('aria-label', btn.title);
+}
+
+function resolvePreferredTheme() {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === THEMES.DARK || stored === THEMES.LIGHT) return stored;
+
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return prefersDark ? THEMES.DARK : THEMES.LIGHT;
+}
+
+function applyTheme(theme) {
+  const resolved = theme === THEMES.LIGHT ? THEMES.LIGHT : THEMES.DARK;
+  document.documentElement.setAttribute('data-theme', resolved);
+  localStorage.setItem(THEME_STORAGE_KEY, resolved);
+  updateThemeToggleUI(resolved);
+}
+
+function updateThemeToggleUI(theme) {
+  const btn = document.getElementById('theme-toggle-btn');
+  const icon = document.getElementById('theme-toggle-icon');
+  const label = document.getElementById('theme-toggle-label');
+  if (!btn || !icon || !label) return;
+
+  const isDark = theme !== THEMES.LIGHT;
+  icon.textContent = isDark ? '🌙' : '☀️';
+  label.textContent = isDark ? 'Dark' : 'Light';
+  btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  btn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+}
+
+function setupThemeToggle() {
+  const btn = document.getElementById('theme-toggle-btn');
+  if (!btn) return;
+
+  applyTheme(resolvePreferredTheme());
+
+  btn.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || THEMES.DARK;
+    applyTheme(current === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK);
+  });
+}
+
+function setCopyrightYear() {
+  const yearEl = document.getElementById('copyright-year');
+  if (!yearEl) return;
+  yearEl.textContent = String(new Date().getFullYear());
 }
 
 function updateDataScopeFlag(meta, appsData) {
@@ -272,6 +324,8 @@ function updateStatsBar(appsData, firmsData) {
 // ── Init ──────────────────────────────────────────────────
 
 async function init() {
+  setupThemeToggle();
+  setCopyrightYear();
   renderEmptyState();
   setupCSVImport();
   setupSyncLockButton();
@@ -582,8 +636,8 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
 
   centreGroup.append('circle')
     .attr('r', INNER_R)
-    .attr('fill', '#1C1E26')
-    .attr('stroke', '#2E3040')
+    .style('fill', 'var(--centre-fill)')
+    .style('stroke', 'var(--centre-stroke)')
     .attr('stroke-width', 1.5)
     .attr('cursor', 'pointer')
     .on('click', () => zoomTo(focusNode.parent || focusNode, true));
@@ -591,17 +645,17 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
   const centreMonogram = centreGroup.append('text')
     .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
     .attr('font-size', '26px').attr('font-weight', '700')
-    .attr('fill', '#fff').attr('opacity', 0.6).attr('y', 0);
+    .style('fill', 'var(--centre-text)').attr('opacity', 0.6).attr('y', 0);
 
   const namePillY = INNER_R - 22;
   const namePill = centreGroup.append('rect')
     .attr('rx', 8).attr('ry', 8)
-    .attr('fill', 'rgba(0,0,0,0.55)')
+    .style('fill', 'var(--centre-pill-bg)')
     .attr('height', 18);
 
   const centreName = centreGroup.append('text')
     .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
-    .attr('y', namePillY).attr('font-size', '11px').attr('font-weight', '600').attr('fill', '#E8EAED');
+    .attr('y', namePillY).attr('font-size', '11px').attr('font-weight', '600').style('fill', 'var(--centre-text)');
 
   const backBtn = document.getElementById(backBtnId);
   backBtn.addEventListener('click', () => zoomTo(focusNode.parent || focusNode, true));

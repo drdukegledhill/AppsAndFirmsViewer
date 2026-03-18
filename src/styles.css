@@ -27,6 +27,44 @@
   --panel-w:     340px;
   --topbar-h:    52px;
   --transition:  200ms ease;
+  --topbar-btn-bg: rgba(255,255,255,0.06);
+  --topbar-btn-bg-hover: rgba(255,255,255,0.10);
+  --topbar-btn-bg-active: rgba(255,255,255,0.14);
+  --arc-label: #E8EAED;
+  --centre-fill: #1C1E26;
+  --centre-stroke: #2E3040;
+  --centre-text: #E8EAED;
+  --centre-pill-bg: rgba(0,0,0,0.55);
+  --tooltip-bg: #292D3E;
+}
+
+:root[data-theme="light"] {
+  --bg:          #F5F6FA;
+  --bg-panel:    #FFFFFF;
+  --bg-panel2:   #EDF1F7;
+  --border:      #D2D9E6;
+  --text:        #18212F;
+  --text-muted:  #4D5D75;
+  --text-dim:    #7A8AA3;
+  --gold:        #C67A00;
+  --dean:        #B87413;
+  --cs:          #C47E00;
+  --eng:         #178F63;
+  --ps:          #6B5FD4;
+  --games:       #D14D6D;
+  --ts:          #007FAF;
+  --rg:          #5F41D9;
+  --pthpl:       #CD6200;
+  --danger:      #C73A2E;
+  --topbar-btn-bg: rgba(24,33,47,0.06);
+  --topbar-btn-bg-hover: rgba(24,33,47,0.11);
+  --topbar-btn-bg-active: rgba(24,33,47,0.16);
+  --arc-label: #223045;
+  --centre-fill: #FFFFFF;
+  --centre-stroke: #CAD3E3;
+  --centre-text: #1A273A;
+  --centre-pill-bg: rgba(248,251,255,0.82);
+  --tooltip-bg: #FFFFFF;
 }
 
 html, body {
@@ -37,6 +75,9 @@ html, body {
   font-size: 14px;
   overflow: hidden;
 }
+
+html { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 
 /* ── Top bar ─────────────────────────────────────────── */
 
@@ -226,7 +267,7 @@ html, body {
 
 .tooltip {
   position: fixed;
-  background: #292D3E;
+  background: var(--tooltip-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px 12px;
