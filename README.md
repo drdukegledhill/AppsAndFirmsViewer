@@ -34,7 +34,28 @@ You have two ways to use the app:
 - Build it locally from this repository.
 - Download a packaged build from the GitHub Releases page once a release has been published.
 
-For packaged builds, open the Releases page on GitHub and download the installer or bundle for your platform.
+### Release Assets
+
+| File | Platform |
+|------|----------|
+| `*_aarch64.dmg` | macOS — Apple Silicon (M1/M2/M3) |
+| `*_x86_64.dmg` | macOS — Intel |
+| `*_aarch64.app.tar.gz` | macOS app bundle (alternative to DMG) |
+| `*_x64-setup.exe` | Windows installer |
+| `*_x64_en-US.msi` | Windows MSI package |
+| `*_amd64.deb` | Linux — Debian/Ubuntu |
+| `*_x86_64.rpm` | Linux — Fedora/RHEL |
+| `*_amd64.AppImage` | Linux — universal (any distro) |
+
+### macOS Installation Note
+
+The app is unsigned, so macOS Gatekeeper will show a **"damaged and can't be opened"** error after installing from the DMG. This is expected and safe to bypass. After dragging the app to your Applications folder, run the following in Terminal:
+
+```bash
+xattr -cr "/Applications/Applications and Firms Viewer.app"
+```
+
+Then open the app normally. You only need to do this once.
 
 ## Run In Development
 
@@ -67,7 +88,7 @@ git push origin v0.1.1
 
 You can also run the workflow manually from the Actions tab and provide a release tag.
 
-The generated binaries are currently unsigned, so macOS Gatekeeper and Windows SmartScreen may show warnings.
+The generated binaries are currently unsigned. See the macOS Installation Note above for how to bypass the Gatekeeper warning. On Windows, SmartScreen may also show a warning — click "More info" then "Run anyway".
 
 ## CSV Notes
 
