@@ -12,7 +12,7 @@ It supports both single-school datasets and whole-university datasets, keeps bot
 ## Repo Contents
 
 - `docs/` contains the browser app and is the single source of truth for deployment.
-- `DEMO_School.csv` and `DEMO_University.csv` are sample datasets for local testing.
+- `docs/assets/demos/` contains sample CSV datasets used by the demo-data selector.
 
 ## Prerequisites
 
