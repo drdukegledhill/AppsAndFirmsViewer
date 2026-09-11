@@ -11,8 +11,7 @@ It supports both single-school datasets and whole-university datasets, keeps bot
 
 ## Repo Contents
 
-- `src/` contains the frontend UI, CSV parsing logic, and D3 sunburst rendering.
-- `docs/` contains the browser build used for GitHub Pages deployment.
+- `docs/` contains the browser app and is the single source of truth for deployment.
 - `DEMO_School.csv` and `DEMO_University.csv` are sample datasets for local testing.
 
 ## Prerequisites
@@ -26,6 +25,8 @@ npm start
 ```
 
 This serves the project at `http://localhost:8080`.
+
+Because the server root is `docs/`, the app opens directly at the root URL.
 
 ## Use The App
 
