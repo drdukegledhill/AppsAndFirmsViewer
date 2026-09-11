@@ -6,7 +6,7 @@ const RING_W    = 70;
 const MAX_RINGS = 4;
 
 const syncState = {
-  locked: false,
+  locked: true,
   lastActivePane: 'apps',
   syncing: false,
   controllers: {
@@ -42,6 +42,7 @@ const DEMO_DATASETS = {
 
 const LOCK_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3"></path><rect x="5" y="10" width="14" height="10" rx="2"></rect><circle cx="12" cy="15" r="1"></circle></svg>`;
 const UNLOCK_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 10V7a5 5 0 0 0-9.8-1.4"></path><rect x="5" y="10" width="14" height="10" rx="2"></rect><circle cx="12" cy="15" r="1"></circle></svg>`;
+const RESET_VIEW_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.6-6.4"></path><path d="M3 4v4h4"></path><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"></circle></svg>`;
 const LAYOUT_VALUE_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"></path><rect x="5" y="11" width="5" height="8" rx="1"></rect><rect x="10" y="7" width="5" height="12" rx="1"></rect><rect x="15" y="4" width="4" height="15" rx="1"></rect></svg>`;
 const LAYOUT_COMPARE_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18"></path><rect x="4" y="5" width="7" height="14" rx="1"></rect><rect x="13" y="9" width="7" height="10" rx="1"></rect></svg>`;
 
@@ -268,6 +269,29 @@ function setupLayoutModeButton() {
   updateLayoutModeButtonUI();
 }
 
+function setupResetViewButton() {
+  const btn = document.getElementById('reset-view-btn');
+  if (!btn) return;
+
+  btn.innerHTML = RESET_VIEW_ICON_SVG;
+  btn.setAttribute('aria-label', 'Reset zoom');
+  btn.setAttribute('title', 'Reset zoom');
+
+  btn.addEventListener('click', () => {
+    const ctrls = [syncState.controllers.apps, syncState.controllers.firms].filter(Boolean);
+    if (ctrls.length === 0) {
+      showToast('Load a CSV first', true);
+      return;
+    }
+
+    syncState.syncing = true;
+    ctrls.forEach(ctrl => ctrl.resetView && ctrl.resetView());
+    syncState.syncing = false;
+
+    showToast('Zoom reset');
+  });
+}
+
 function nodeLabelKey(data) {
   return (data?.shortName || data?.name || '').toString().trim().toLowerCase();
 }
@@ -344,6 +368,7 @@ async function init() {
   setupDemoDataControls();
   setupSyncLockButton();
   setupLayoutModeButton();
+  setupResetViewButton();
 }
 
 function renderEmptyState() {
@@ -883,6 +908,12 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
     setTransform: (t) => svg.call(zoomBehavior.transform, t),
     getFocusPath: () => hierarchyPathKey(focusNode),
     hasPath: (pathKey) => pathToNode.has(pathKey),
+    resetView: () => {
+      zoomTo(root, false, true);
+      const W = svg.node().clientWidth;
+      const H = svg.node().clientHeight;
+      svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(W / 2, H / 2));
+    },
     zoomToPath: (pathKey, isUserInteraction = false) => {
       const target = pathToNode.get(pathKey);
       if (target) zoomTo(target, isUserInteraction, true);
