@@ -286,7 +286,7 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 4px 8px;
-      max-width: 410px;
+      max-width: min(55vw, 560px);
     }
     .colour-panel-heading {
       font-size: 9px;
@@ -371,6 +371,7 @@
       align-items: center;
       gap: 10px;
       min-height: 42px;
+      min-width: 0;
     }
     .uni-logo-stack {
       position: relative;
@@ -425,7 +426,7 @@
       font-size: 11px;
       color: var(--text-muted);
       background: rgba(255,255,255,0.04);
-      max-width: 320px;
+      max-width: min(50vw, 560px);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -523,36 +524,41 @@
 <body>
 
   <header class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-brand">
-        <div class="uni-logo-stack" aria-hidden="true">
-          <img class="uni-logo uni-logo-dark" src="assets/logos/uoh-logo-dark.png" alt="" />
-          <img class="uni-logo uni-logo-light" src="assets/logos/uoh-logo-light.png" alt="" />
+    <div class="topbar-main">
+      <div class="topbar-left">
+        <div class="topbar-brand">
+          <div class="uni-logo-stack" aria-hidden="true">
+            <img class="uni-logo uni-logo-dark" src="assets/logos/uoh-logo-dark.png" alt="" />
+            <img class="uni-logo uni-logo-light" src="assets/logos/uoh-logo-light.png" alt="" />
+          </div>
+          <h1 class="topbar-title">UG Applications and Firms Viewer</h1>
         </div>
-        <h1 class="topbar-title">UG Applications and Firms Viewer</h1>
       </div>
-      <div id="data-scope-flag" class="scope-flag" aria-live="polite">Scope: No dataset loaded</div>
+      <div class="topbar-actions">
+        <div class="demo-controls" aria-label="Demo datasets">
+          <select id="demo-data-select" class="topbar-select" title="Choose demo dataset" aria-label="Choose demo dataset">
+            <option value="">Demo data...</option>
+            <option value="school">School demo</option>
+            <option value="university">University demo</option>
+          </select>
+        </div>
+        <button id="theme-toggle-btn" class="topbar-btn" title="Switch theme" aria-label="Switch to light mode">
+          <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+          <span id="theme-toggle-label">Dark</span>
+        </button>
+        <input type="file" id="csv-file-input" accept=".csv" style="display:none" />
+        <button id="import-csv-btn" class="topbar-btn" title="Import CSV">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 1v10M4 7l4 4 4-4"/>
+            <path d="M2 13h12"/>
+          </svg>
+          Import CSV
+        </button>
+      </div>
     </div>
-    <div class="topbar-right">
-      <div class="demo-controls" aria-label="Demo datasets">
-        <select id="demo-data-select" class="topbar-select" title="Choose demo dataset" aria-label="Choose demo dataset">
-          <option value="">Demo data...</option>
-          <option value="school">School demo</option>
-          <option value="university">University demo</option>
-        </select>
-      </div>
-      <button id="theme-toggle-btn" class="topbar-btn" title="Switch theme" aria-label="Switch to light mode">
-        <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
-        <span id="theme-toggle-label">Dark</span>
-      </button>
-      <input type="file" id="csv-file-input" accept=".csv" style="display:none" />
-      <button id="import-csv-btn" class="topbar-btn" title="Import CSV">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 1v10M4 7l4 4 4-4"/>
-          <path d="M2 13h12"/>
-        </svg>
-        Import CSV
-      </button>
+
+    <div class="topbar-meta">
+      <div id="data-scope-flag" class="scope-flag" aria-live="polite">Scope: No dataset loaded</div>
       <nav id="colour-panel" aria-label="Colour legend">
         <div class="colour-panel-heading">% Change YoY</div>
         <div class="legend-scale">
