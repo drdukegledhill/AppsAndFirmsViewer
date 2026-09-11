@@ -27,6 +27,19 @@ const THEMES = {
   LIGHT: 'light',
 };
 
+const DEMO_DATASETS = {
+  school: {
+    label: 'School demo',
+    filename: 'DEMO_School.csv',
+    path: 'assets/demos/DEMO_School.csv',
+  },
+  university: {
+    label: 'University demo',
+    filename: 'DEMO_University.csv',
+    path: 'assets/demos/DEMO_University.csv',
+  },
+};
+
 const LOCK_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3"></path><rect x="5" y="10" width="14" height="10" rx="2"></rect><circle cx="12" cy="15" r="1"></circle></svg>`;
 const UNLOCK_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 10V7a5 5 0 0 0-9.8-1.4"></path><rect x="5" y="10" width="14" height="10" rx="2"></rect><circle cx="12" cy="15" r="1"></circle></svg>`;
 const LAYOUT_VALUE_ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"></path><rect x="5" y="11" width="5" height="8" rx="1"></rect><rect x="10" y="7" width="5" height="12" rx="1"></rect><rect x="15" y="4" width="4" height="15" rx="1"></rect></svg>`;
@@ -328,6 +341,7 @@ async function init() {
   setCopyrightYear();
   renderEmptyState();
   setupCSVImport();
+  setupDemoDataControls();
   setupSyncLockButton();
   setupLayoutModeButton();
 }
@@ -376,13 +390,7 @@ function setupCSVImport() {
 
     try {
       const text = await file.text();
-      const { apps, firms, meta } = parseCSV(text);
-
-      // Clear and re-render both
-      document.getElementById('pane-apps').querySelectorAll('svg').forEach(s => s.remove());
-      document.getElementById('pane-firms').querySelectorAll('svg').forEach(s => s.remove());
-      renderDual(apps, firms, meta);
-      showToast(`Loaded: ${file.name}`);
+      loadCSVText(text, file.name);
     } catch (err) {
       console.error('CSV parse error', err);
       showToast(`Error: ${err.message}`, true);
@@ -390,6 +398,53 @@ function setupCSVImport() {
 
     fileInput.value = '';
   });
+}
+
+function setupDemoDataControls() {
+  const select = document.getElementById('demo-data-select');
+  const loadBtn = document.getElementById('load-demo-btn');
+  if (!select || !loadBtn) return;
+
+  const syncButtonState = () => {
+    loadBtn.disabled = !DEMO_DATASETS[select.value];
+  };
+
+  const loadSelectedDemo = async () => {
+    const selected = DEMO_DATASETS[select.value];
+    if (!selected) {
+      showToast('Choose a demo dataset first', true);
+      return;
+    }
+    await loadCSVFromPath(selected.path, selected.filename);
+  };
+
+  select.addEventListener('change', syncButtonState);
+  loadBtn.addEventListener('click', loadSelectedDemo);
+  syncButtonState();
+}
+
+async function loadCSVFromPath(path, label) {
+  try {
+    const response = await fetch(path, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Could not load ${label} (${response.status})`);
+    }
+    const text = await response.text();
+    loadCSVText(text, label);
+  } catch (err) {
+    console.error('Demo CSV load error', err);
+    showToast(`Error: ${err.message}`, true);
+  }
+}
+
+function loadCSVText(text, sourceLabel) {
+  const { apps, firms, meta } = parseCSV(text);
+
+  // Clear and re-render both panes using the new dataset.
+  document.getElementById('pane-apps').querySelectorAll('svg').forEach(s => s.remove());
+  document.getElementById('pane-firms').querySelectorAll('svg').forEach(s => s.remove());
+  renderDual(apps, firms, meta);
+  showToast(`Loaded: ${sourceLabel}`);
 }
 
 function showToast(msg, isError = false) {

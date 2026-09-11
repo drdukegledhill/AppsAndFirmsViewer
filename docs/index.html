@@ -358,6 +358,56 @@
       border-color: #22c55e66;
       background: #22c55e14;
     }
+    .topbar-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .uni-logo-stack {
+      position: relative;
+      width: 134px;
+      height: 30px;
+      flex-shrink: 0;
+    }
+    .uni-logo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: left center;
+      opacity: 0;
+      transition: opacity 160ms ease;
+      pointer-events: none;
+    }
+    :root[data-theme="dark"] .uni-logo-dark { opacity: 1; }
+    :root[data-theme="light"] .uni-logo-light { opacity: 1; }
+
+    .demo-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .topbar-select {
+      height: 30px;
+      background: var(--topbar-btn-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      padding: 0 8px;
+      font-size: 12px;
+      min-width: 146px;
+    }
+    .topbar-select:focus {
+      outline: none;
+      border-color: var(--text-dim);
+      color: var(--text);
+    }
 
     /* ── Dataset scope flag ── */
     .scope-flag {
@@ -470,10 +520,24 @@
 
   <header class="topbar">
     <div class="topbar-left">
-      <h1 class="topbar-title">UG Applications and Firms Viewer</h1>
+      <div class="topbar-brand">
+        <div class="uni-logo-stack" aria-hidden="true">
+          <img class="uni-logo uni-logo-dark" src="assets/logos/uoh-logo-dark.png" alt="" />
+          <img class="uni-logo uni-logo-light" src="assets/logos/uoh-logo-light.png" alt="" />
+        </div>
+        <h1 class="topbar-title">UG Applications and Firms Viewer</h1>
+      </div>
       <div id="data-scope-flag" class="scope-flag" aria-live="polite">Scope: No dataset loaded</div>
     </div>
     <div class="topbar-right">
+      <div class="demo-controls" aria-label="Demo datasets">
+        <select id="demo-data-select" class="topbar-select" title="Choose demo dataset" aria-label="Choose demo dataset">
+          <option value="">Demo data...</option>
+          <option value="school">School demo</option>
+          <option value="university">University demo</option>
+        </select>
+        <button id="load-demo-btn" class="topbar-btn" title="Load selected demo" aria-label="Load selected demo">Load Demo</button>
+      </div>
       <button id="theme-toggle-btn" class="topbar-btn" title="Switch theme" aria-label="Switch to light mode">
         <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
         <span id="theme-toggle-label">Dark</span>
