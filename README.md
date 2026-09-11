@@ -31,6 +31,9 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 	- Toggle Light/Dark mode.
 	- Pane sync is on by default. Use the lock control in the centre panel to turn sync off or back on.
 	- Use Reset zoom in the centre panel to return both charts to the root view.
+	- Use the Layout mode control in the centre panel to switch between:
+	  - Value layout: each chart uses its own geometry based on its own values.
+	  - Compare layout: both charts share the same geometry to make like-for-like visual comparison easier.
 
 ### Where To Get The CSV
 
