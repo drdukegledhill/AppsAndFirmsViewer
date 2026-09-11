@@ -102,7 +102,7 @@ html { color-scheme: dark; }
   gap: 6px;
 }
 .topbar-centre { flex: 1; max-width: 480px; margin: 0 auto; }
-.topbar-right { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+.topbar-right { flex: 0 0 auto; display: flex; gap: 8px; align-items: flex-start; margin-top: 0; }
 
 .topbar-title {
   font-size: 15px;
