@@ -18,7 +18,7 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 
 ### What It Does
 
-- Visualizes two related datasets side by side: Total Applications and Total Firms.
+- Visualises two related datasets side by side: Total Applications and Total Firms.
 - Supports school-level and whole-university CSV extracts.
 - Lets you drill down by clicking arcs in either sunburst.
 
@@ -96,6 +96,6 @@ Set GitHub Pages to publish from the repository `docs/` directory.
 
 - Keep demo CSVs in `docs/assets/demos/`.
 - Keep logos in `docs/assets/logos/`.
-- `docs/index.html`, `docs/styles.css`, and `docs/sunburst.js` are the main UI and behavior entry points.
+- `docs/index.html`, `docs/styles.css`, and `docs/sunburst.js` are the main UI and behaviour entry points.
 
 </details>
