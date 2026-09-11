@@ -1,8 +1,6 @@
 # Applications and Firms Viewer
 
-Desktop viewer for undergraduate applications and firm-count CSV exports, built with Tauri, vanilla JavaScript, and D3.
-
-This repository also includes a browser build in `docs/` for GitHub Pages.
+Browser-based viewer for undergraduate applications and firm-count CSV exports, built with vanilla JavaScript and D3.
 
 The app imports a CSV extract and renders two linked sunburst views:
 
@@ -15,113 +13,39 @@ It supports both single-school datasets and whole-university datasets, keeps bot
 
 - `src/` contains the frontend UI, CSV parsing logic, and D3 sunburst rendering.
 - `docs/` contains the browser build used for GitHub Pages deployment.
-- `src-tauri/` contains the Tauri desktop shell and Rust configuration.
 - `DEMO_School.csv` and `DEMO_University.csv` are sample datasets for local testing.
 
 ## Prerequisites
 
-- Node.js 20+ with npm
-- Rust toolchain
-- Tauri system prerequisites for your platform: https://tauri.app/start/prerequisites/
+- Any static file server (or Python 3)
 
-## Install
+## Run Locally
 
 ```bash
-npm install
+npm start
 ```
 
-## Get The App
+This serves the project at `http://localhost:8080`.
 
-You have two ways to use the app:
+## Use The App
 
-- Build it locally from this repository.
-- Download a packaged build from the GitHub Releases page once a release has been published.
+In the top bar you can:
 
-### Release Assets
+- Import your own CSV export.
+- Pick `School demo` or `University demo` from the `Demo data...` dropdown to auto-load sample datasets.
+- Switch between light and dark themes.
 
-| File | Platform |
-|------|----------|
-| `*_aarch64.dmg` | macOS — Apple Silicon (M1/M2/M3) |
-| `*_x86_64.dmg` | macOS — Intel |
-| `*_aarch64.app.tar.gz` | macOS app bundle (alternative to DMG) |
-| `*_x64-setup.exe` | Windows installer |
-| `*_x64_en-US.msi` | Windows MSI package |
-| `*_amd64.deb` | Linux — Debian/Ubuntu |
-| `*_x86_64.rpm` | Linux — Fedora/RHEL |
-| `*_amd64.AppImage` | Linux — universal (any distro) |
+## GitHub Pages Deployment
 
-### macOS Installation Note
+The `docs/` folder is the static site for GitHub Pages.
 
-The app is unsigned, so macOS Gatekeeper will show a **"damaged and can't be opened"** error after installing from the DMG. This is expected and safe to bypass. After dragging the app to your Applications folder, run the following in Terminal:
-
-```bash
-xattr -cr "/Applications/Applications and Firms Viewer.app"
-```
-
-Then open the app normally. You only need to do this once.
-
-## Run In Development
-
-```bash
-npm run tauri dev
-```
-
-The application opens as a desktop window. Use the import control in the top bar to load one of the demo CSVs or your own export.
-
-### Demo Data In App
-
-Use the `Demo data...` dropdown in the top bar to auto-load either:
-
-- `School demo`
-- `University demo`
-
-The app loads the selected dataset immediately when you change the dropdown value.
-
-### Theme + Branding
-
-The top bar includes light/dark theme toggle support and switches between dedicated university logos for each theme.
-
-## Browser Build (GitHub Pages)
-
-The `docs/` folder is the static browser build and can be hosted directly via GitHub Pages.
-
-To run it locally, serve the repository root (or `docs/`) with any static server so CSV fetch requests work correctly.
-
-## Build
-
-```bash
-npm run tauri build
-```
-
-Build artefacts are written under `src-tauri/target/`.
-
-This is the right option if you want to test local changes before publishing a release.
-
-## GitHub Builds
-
-GitHub Actions is configured to build macOS, Linux, and Windows desktop packages and attach them to a draft GitHub Release.
-
-To publish a new build:
-
-```bash
-git tag v0.1.1
-git push origin v0.1.1
-```
-
-You can also run the workflow manually from the Actions tab and provide a release tag.
-
-The generated binaries are currently unsigned. See the macOS Installation Note above for how to bypass the Gatekeeper warning. On Windows, SmartScreen may also show a warning — click "More info" then "Run anyway".
+Point GitHub Pages at the repository `docs/` directory and publish.
 
 ## CSV Notes
 
-The parser expects the exported CSV to contain two side-by-side tables:
+The parser expects exported CSVs containing two side-by-side tables:
 
 - application stats in columns A-E
 - firm stats in columns G-K
 
-It ignores dashboard header noise, detects whether the data is school-level or university-wide, and converts the rows into hierarchical structures used by the sunburst views.
-
-## Recommended VS Code Extensions
-
-- Tauri
-- rust-analyzer
+It ignores dashboard header noise, detects whether the data is school-level or university-wide, and converts rows into hierarchical structures for the sunburst views.

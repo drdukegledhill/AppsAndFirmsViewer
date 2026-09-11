@@ -26,10 +26,5 @@ coverage
 *.sln
 *.sw?
 
-# Tauri / Rust build outputs
-src-tauri/target/
-src-tauri/gen/schemas/
-.tauri/
-
 # AI-generated design exports
 Claude outputs/
