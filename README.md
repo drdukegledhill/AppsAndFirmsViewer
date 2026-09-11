@@ -2,6 +2,8 @@
 
 Desktop viewer for undergraduate applications and firm-count CSV exports, built with Tauri, vanilla JavaScript, and D3.
 
+This repository also includes a browser build in `docs/` for GitHub Pages.
+
 The app imports a CSV extract and renders two linked sunburst views:
 
 - Applications
@@ -12,6 +14,7 @@ It supports both single-school datasets and whole-university datasets, keeps bot
 ## Repo Contents
 
 - `src/` contains the frontend UI, CSV parsing logic, and D3 sunburst rendering.
+- `docs/` contains the browser build used for GitHub Pages deployment.
 - `src-tauri/` contains the Tauri desktop shell and Rust configuration.
 - `DEMO_School.csv` and `DEMO_University.csv` are sample datasets for local testing.
 
@@ -64,6 +67,25 @@ npm run tauri dev
 ```
 
 The application opens as a desktop window. Use the import control in the top bar to load one of the demo CSVs or your own export.
+
+### Demo Data In App
+
+Use the `Demo data...` dropdown in the top bar to auto-load either:
+
+- `School demo`
+- `University demo`
+
+The app loads the selected dataset immediately when you change the dropdown value.
+
+### Theme + Branding
+
+The top bar includes light/dark theme toggle support and switches between dedicated university logos for each theme.
+
+## Browser Build (GitHub Pages)
+
+The `docs/` folder is the static browser build and can be hosted directly via GitHub Pages.
+
+To run it locally, serve the repository root (or `docs/`) with any static server so CSV fetch requests work correctly.
 
 ## Build
 

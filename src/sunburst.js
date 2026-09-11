@@ -402,38 +402,50 @@ function setupCSVImport() {
 
 function setupDemoDataControls() {
   const select = document.getElementById('demo-data-select');
-  const loadBtn = document.getElementById('load-demo-btn');
-  if (!select || !loadBtn) return;
-
-  const syncButtonState = () => {
-    loadBtn.disabled = !DEMO_DATASETS[select.value];
-  };
+  if (!select) return;
 
   const loadSelectedDemo = async () => {
     const selected = DEMO_DATASETS[select.value];
     if (!selected) {
-      showToast('Choose a demo dataset first', true);
       return;
     }
     await loadCSVFromPath(selected.path, selected.filename);
   };
 
-  select.addEventListener('change', syncButtonState);
-  loadBtn.addEventListener('click', loadSelectedDemo);
-  syncButtonState();
+  select.addEventListener('change', loadSelectedDemo);
 }
 
 async function loadCSVFromPath(path, label) {
+  const candidates = [];
+  const addCandidate = (candidatePath) => {
+    if (!candidatePath) return;
+    const href = new URL(candidatePath, window.location.href).toString();
+    if (!candidates.includes(href)) candidates.push(href);
+  };
+
+  addCandidate(path);
+  addCandidate(`./${path}`);
+  addCandidate(label);
+  addCandidate(`./${label}`);
+  addCandidate(`../${label}`);
+
+  const failed = [];
+
   try {
-    const response = await fetch(path, { cache: 'no-store' });
-    if (!response.ok) {
-      throw new Error(`Could not load ${label} (${response.status})`);
+    for (const url of candidates) {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) {
+        const text = await response.text();
+        loadCSVText(text, label);
+        return;
+      }
+      failed.push(`${response.status} ${url}`);
     }
-    const text = await response.text();
-    loadCSVText(text, label);
+    throw new Error(`Could not load ${label}`);
   } catch (err) {
     console.error('Demo CSV load error', err);
-    showToast(`Error: ${err.message}`, true);
+    const details = failed.length ? ` (${failed.join(' | ')})` : '';
+    showToast(`Error: ${err.message}${details}`, true);
   }
 }
 

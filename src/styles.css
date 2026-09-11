@@ -94,9 +94,15 @@ html { color-scheme: dark; }
   z-index: 200;
 }
 
-.topbar-left  { flex: 0 0 auto; }
+.topbar-left  {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
 .topbar-centre { flex: 1; max-width: 480px; margin: 0 auto; }
-.topbar-right { flex: 0 0 auto; display: flex; gap: 8px; }
+.topbar-right { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; }
 
 .topbar-title {
   font-size: 15px;

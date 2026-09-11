@@ -30,3 +30,6 @@ coverage
 src-tauri/target/
 src-tauri/gen/schemas/
 .tauri/
+
+# AI-generated design exports
+Claude outputs/
