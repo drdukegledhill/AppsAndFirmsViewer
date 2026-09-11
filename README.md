@@ -27,7 +27,10 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 1. Open the live app link above.
 2. Load data by either selecting School demo or University demo from the Demo data dropdown, or by clicking Import CSV.
 3. Explore the chart: hover an arc to preview details, click an arc to zoom, and use back controls to move up the hierarchy.
-4. Optional controls: toggle Light/Dark mode and use pane sync controls to keep both charts aligned.
+4. Optional controls:
+	- Toggle Light/Dark mode.
+	- Pane sync is on by default. Use the lock control in the centre panel to turn sync off or back on.
+	- Use Reset zoom in the centre panel to return both charts to the root view.
 
 ### Where To Get The CSV
 
