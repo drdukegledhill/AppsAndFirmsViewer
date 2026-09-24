@@ -177,7 +177,8 @@ export function decodeCSVBytes(buffer) {
  *   years: ['23/24', ...],           // ascending
  *   current, previous,               // latest two years
  *   meta: { title, dates, scope, scopeName },
- *   panes: [{ id, title, metric, tree, year, baseYear }, { ... }],
+ *   panes: [{ id, title, metric, tree, year, baseYear }, { ... }],   // [left, right]
+ *   primaryPane: 'left' | 'right',   // pane showing the latest year (UG: left, PG: right)
  *   summary: [{ label, cur, prev, curYear, prevYear, title? }],
  *   notes: [string],
  * }
@@ -249,6 +250,7 @@ function parseUG(rows, headerIdx) {
       { id: 'left', title: 'Total Applications', metric: 'Apps', tree: apps, year: current, baseYear: previous },
       { id: 'right', title: 'Total Firms', metric: 'Firms', tree: firms, year: current, baseYear: previous },
     ],
+    primaryPane: 'left',
     summary: [
       summaryFromTree('Apps', apps, current, previous),
       summaryFromTree('Firms', firms, current, previous),
@@ -299,14 +301,16 @@ function parsePG(rows, headerIdx, yearCols) {
     previous,
     meta,
     panes: [
-      { id: 'left', title: `Total Firms ${current}`, metric: 'Firms', tree: firms, year: current, baseYear: previous },
-      { id: 'right', title: `Total Firms ${previous} (same point last year)`, metric: 'Firms', tree: firms, year: previous, baseYear: beforePrevious },
+      { id: 'left', title: `Total Firms ${previous} (same point last year)`, metric: 'Firms', tree: firms, year: previous, baseYear: beforePrevious },
+      { id: 'right', title: `Total Firms ${current}`, metric: 'Firms', tree: firms, year: current, baseYear: previous },
     ],
+    // Latest year sits on the right; it drives Compare geometry and the default info panel.
+    primaryPane: 'right',
     baseTree: fullTree,
     displayYears,
     filterGroups: PG_FILTER_GROUPS,
     summary,
-    notes: ['PG exports contain firms only; the right-hand pane shows the same point last year.'],
+    notes: ['PG exports contain firms only; the left-hand pane shows the same point last year.'],
   };
 }
 

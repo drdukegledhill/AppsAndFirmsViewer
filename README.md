@@ -7,7 +7,7 @@ The app imports a CSV extract, works out whether it is a UG or PG export, and re
 | Dataset | Left pane | Right pane |
 | --- | --- | --- |
 | UG | Applications (this year) | Firms (this year) |
-| PG | Firms (this year) | Firms (same point last year) |
+| PG | Firms (same point last year) | Firms (this year) |
 
 It supports both single-school datasets and whole-university datasets, keeps both panes in sync when required, and shows summary stats plus drill-down context for the selected hierarchy.
 
@@ -21,7 +21,7 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 ### What It Does
 
 - UG: visualises Total Applications and Total Firms side by side.
-- PG: visualises Total Firms this year next to Total Firms at the same point last year. The PG export only has firms at course level, so applications appear as headline totals in the stats bar.
+- PG: visualises Total Firms at the same point last year (left) next to Total Firms this year (right). The PG export only has firms at course level, so applications appear as headline totals in the stats bar.
 - PG filters: narrow both panes by Level (Doctorate, Masters, Other PG), Type (PGR, PGT) and Mode (FT, PT). See PG Filters below.
 - Detects UG or PG automatically; a UG/PG badge next to the scope flag shows which was loaded.
 - Supports school-level and whole-university CSV extracts for both.

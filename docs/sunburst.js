@@ -3,7 +3,7 @@
 // The parser returns a model with two panes (left / right). Each pane names the
 // tree to draw, the year that sizes the arcs and the base year used for colour.
 //   UG: left = Applications, right = Firms (both current year vs previous)
-//   PG: left = Firms current year, right = Firms previous year (same point last year)
+//   PG: left = Firms previous year (same point last year), right = Firms current year
 import {
   parseCSV,
   decodeCSVBytes,
@@ -191,8 +191,8 @@ function updateHeadings(model) {
   const note = document.getElementById('legend-note');
 
   if (!model) {
-    if (titles.left) titles.left.textContent = 'UG: Applications · PG: Firms this year';
-    if (titles.right) titles.right.textContent = 'UG: Firms · PG: Firms last year';
+    if (titles.left) titles.left.textContent = 'UG: Applications · PG: Firms last year';
+    if (titles.right) titles.right.textContent = 'UG: Firms · PG: Firms this year';
     if (note) note.textContent = 'Size = current year · Colour = change vs previous year';
     return;
   }
@@ -677,10 +677,11 @@ function renderModel(model) {
     return;
   }
 
-  // Compare layout: both panes use the left pane's geometry.
-  const leftPane = model.panes[0];
+  // Compare layout: both panes use the primary (latest-year) pane's geometry.
+  const primaryKey = model.primaryPane || 'left';
+  const primaryPane = model.panes.find(p => p.id === primaryKey) || model.panes[0];
   const sharedGeometryMap = layoutState.mode === 'compare'
-    ? buildGeometryMap(leftPane.tree, leftPane.year)
+    ? buildGeometryMap(primaryPane.tree, primaryPane.year)
     : null;
 
   model.panes.forEach(pane => renderSunburst({ pane, model, geometryMap: sharedGeometryMap }));
@@ -689,8 +690,9 @@ function renderModel(model) {
     trySnapPanesOnLock();
   }
 
-  // Info panel starts on the left (primary) pane.
-  syncState.controllers.left?.showInfo();
+  // Info panel starts on the primary (latest-year) pane.
+  syncState.lastActivePane = primaryKey;
+  syncState.controllers[primaryKey]?.showInfo();
   updateStatsBar(model);
 }
 
