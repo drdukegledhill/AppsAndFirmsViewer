@@ -4,7 +4,14 @@
 // tree to draw, the year that sizes the arcs and the base year used for colour.
 //   UG: left = Applications, right = Firms (both current year vs previous)
 //   PG: left = Firms current year, right = Firms previous year (same point last year)
-import { parseCSV, decodeCSVBytes, changeBetween } from './csvParser.js';
+import {
+  parseCSV,
+  decodeCSVBytes,
+  changeBetween,
+  filterModel,
+  defaultPGSelection,
+  isFilterActive,
+} from './csvParser.js';
 
 const INNER_R   = 80;
 const RING_W    = 70;
@@ -25,7 +32,12 @@ const otherPane = (key) => (key === 'left' ? 'right' : 'left');
 
 const layoutState = {
   mode: 'value',
-  latestModel: null,
+  sourceModel: null,   // as parsed from the CSV
+  latestModel: null,   // what is on screen (PG filters applied)
+};
+
+const filterState = {
+  selection: null,     // { level: Set, type: Set, mode: Set } for PG, null for UG
 };
 
 const THEME_STORAGE_KEY = 'app-theme';
@@ -186,7 +198,7 @@ function updateHeadings(model) {
   }
 
   model.panes.forEach(p => {
-    if (titles[p.id]) titles[p.id].textContent = p.title;
+    if (titles[p.id]) titles[p.id].textContent = model.filtered ? `${p.title} · filtered` : p.title;
   });
 
   if (note) {
@@ -279,41 +291,110 @@ function setupLayoutModeButton() {
     layoutState.mode = layoutState.mode === 'value' ? 'compare' : 'value';
     updateLayoutModeButtonUI();
 
-    const preservedView = { lastActivePane: syncState.lastActivePane };
-    PANE_KEYS.forEach((key) => {
-      preservedView[key] = {
-        focusPath: syncState.controllers[key]?.getFocusPath?.() || null,
-        transform: syncState.controllers[key]?.getTransform?.() || null,
-      };
-    });
-
-    renderModel(layoutState.latestModel);
-
-    if (preservedView.lastActivePane) {
-      syncState.lastActivePane = preservedView.lastActivePane;
-    }
-
-    PANE_KEYS.forEach((paneKey) => {
-      const ctrl = syncState.controllers[paneKey];
-      const state = preservedView[paneKey];
-      if (!ctrl || !state) return;
-      if (state.focusPath && ctrl.hasPath(state.focusPath)) {
-        ctrl.zoomToPath(state.focusPath, false);
-      }
-      if (state.transform) {
-        ctrl.setTransform(state.transform);
-      }
-    });
-
-    if (syncState.locked) {
-      trySnapPanesOnLock();
-    }
-    syncState.controllers[syncState.lastActivePane]?.showInfo();
+    rerenderPreservingView(layoutState.latestModel);
 
     showToast(layoutState.mode === 'compare' ? 'Compare layout enabled' : 'Value layout enabled');
   });
 
   updateLayoutModeButtonUI();
+}
+
+/** Re-render with a new view model, keeping each pane's zoom and focus where possible. */
+function rerenderPreservingView(model) {
+  const preservedView = { lastActivePane: syncState.lastActivePane };
+  PANE_KEYS.forEach((key) => {
+    preservedView[key] = {
+      focusPath: syncState.controllers[key]?.getFocusPath?.() || null,
+      transform: syncState.controllers[key]?.getTransform?.() || null,
+    };
+  });
+
+  renderModel(model);
+
+  if (preservedView.lastActivePane) {
+    syncState.lastActivePane = preservedView.lastActivePane;
+  }
+
+  PANE_KEYS.forEach((paneKey) => {
+    const ctrl = syncState.controllers[paneKey];
+    const state = preservedView[paneKey];
+    if (!ctrl || !state) return;
+    if (state.focusPath && ctrl.hasPath(state.focusPath)) {
+      ctrl.zoomToPath(state.focusPath, false);
+    }
+    if (state.transform) {
+      ctrl.setTransform(state.transform);
+    }
+  });
+
+  if (syncState.locked) {
+    trySnapPanesOnLock();
+  }
+  syncState.controllers[syncState.lastActivePane]?.showInfo();
+}
+
+// ── PG filters ───────────────────────────────────────────
+
+function renderFilterBar() {
+  const bar = document.getElementById('pg-filters');
+  if (!bar) return;
+
+  const src = layoutState.sourceModel;
+  const sel = filterState.selection;
+  if (!src?.filterGroups || !sel) {
+    bar.hidden = true;
+    bar.innerHTML = '';
+    return;
+  }
+
+  bar.hidden = false;
+  bar.innerHTML = src.filterGroups.map(g => `
+    <div class="filter-group" role="group" aria-label="${escapeHtml(g.label)}">
+      <span class="filter-label">${escapeHtml(g.label)}</span>
+      ${g.options.map(o => {
+        const on = sel[g.key].has(o.value);
+        return `<button type="button" class="filter-chip${on ? ' active' : ''}" data-group="${g.key}" data-value="${escapeHtml(o.value)}" aria-pressed="${on}" title="${escapeHtml(o.title || o.label)}">${escapeHtml(o.label)}</button>`;
+      }).join('')}
+    </div>`).join('')
+    + `<button type="button" class="filter-reset"${isFilterActive(sel) ? '' : ' hidden'} title="Show all PG courses">Reset</button>`;
+}
+
+function applyFilters() {
+  const src = layoutState.sourceModel;
+  if (!src) return;
+  renderFilterBar();
+  rerenderPreservingView(filterModel(src, filterState.selection));
+}
+
+function setupFilterBar() {
+  const bar = document.getElementById('pg-filters');
+  if (!bar) return;
+
+  bar.addEventListener('click', (e) => {
+    const sel = filterState.selection;
+    if (!sel) return;
+
+    if (e.target.closest('.filter-reset')) {
+      filterState.selection = defaultPGSelection();
+      applyFilters();
+      return;
+    }
+
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    const set = sel[chip.dataset.group];
+    const value = chip.dataset.value;
+    if (set.has(value)) {
+      if (set.size === 1) {
+        showToast('Keep at least one option selected in each filter', true);
+        return;
+      }
+      set.delete(value);
+    } else {
+      set.add(value);
+    }
+    applyFilters();
+  });
 }
 
 function setupResetViewButton() {
@@ -408,10 +489,12 @@ function updateStatsBar(model) {
     const ch = describeChange(item.prev, item.cur);
     const col = ch.pct == null ? 'var(--text-dim)' : (ch.pct >= 0 ? '#22c55e' : '#ef4444');
     const title = item.title ? ` title="${escapeHtml(item.title)}"` : '';
-    return `
-      <span${title}>${escapeHtml(item.label)} ${item.curYear}: <span class="stat-value">${fmtValue(item.cur)}</span></span>
-      <span${title}>${escapeHtml(item.label)} ${item.prevYear}: <span class="stat-value">${fmtValue(item.prev)}</span></span>
-      <span${title} style="color:${col};font-weight:600">${ch.label}</span>`;
+    return `<span class="stat-item"${title}>
+        <span>${escapeHtml(item.label)}</span>
+        <span class="stat-year">${item.curYear}</span><span class="stat-value">${fmtValue(item.cur)}</span>
+        <span class="stat-year">${item.prevYear}</span><span class="stat-value">${fmtValue(item.prev)}</span>
+        <span style="color:${col};font-weight:600;margin-left:4px">${ch.label}</span>
+      </span>`;
   });
 
   const dates = model.meta?.dates || {};
@@ -433,6 +516,7 @@ async function init() {
   setupSyncLockButton();
   setupLayoutModeButton();
   setupResetViewButton();
+  setupFilterBar();
 }
 
 function renderEmptyState() {
@@ -460,6 +544,9 @@ function renderEmptyState() {
   }
 
   layoutState.latestModel = null;
+  layoutState.sourceModel = null;
+  filterState.selection = null;
+  renderFilterBar();
   updateDataScopeFlag(null);
   updateHeadings(null);
 }
@@ -538,7 +625,11 @@ async function loadCSVFromPath(path, label) {
 
 function loadCSVText(text, sourceLabel) {
   const model = parseCSV(text);
-  renderModel(model);
+  layoutState.sourceModel = model;
+  // Filters start with everything selected for each newly loaded PG file.
+  filterState.selection = model.filterGroups ? defaultPGSelection() : null;
+  renderFilterBar();
+  renderModel(filterModel(model, filterState.selection));
   showToast(`Loaded ${model.level.toUpperCase()} data: ${sourceLabel}`);
 }
 
@@ -569,6 +660,22 @@ function renderModel(model) {
     pane.querySelectorAll('svg').forEach(s => s.remove());
     pane.querySelectorAll('.no-data-msg').forEach(m => m.remove());
   });
+
+  if (model.empty) {
+    PANE_KEYS.forEach((key) => {
+      const msg = document.createElement('div');
+      msg.className = 'no-data-msg';
+      msg.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;';
+      msg.textContent = 'No courses match these filters';
+      document.getElementById(`pane-${key}`).appendChild(msg);
+      document.getElementById(`breadcrumb-${key}`).innerHTML = '';
+      document.getElementById(`back-btn-${key}`).classList.remove('visible');
+    });
+    const infoPanel = document.getElementById('info-panel');
+    if (infoPanel) infoPanel.innerHTML = '<div class="info-empty">No courses match these filters. Change or reset the filters above.</div>';
+    updateStatsBar(model);
+    return;
+  }
 
   // Compare layout: both panes use the left pane's geometry.
   const leftPane = model.panes[0];
@@ -661,6 +768,7 @@ function renderSunburst({ pane, model, geometryMap }) {
     n = n.replace(/\s*(MEng|BEng|BSc|BA|MSc|MRes|PhD)\s*\/\s*(MEng|BEng|BSc|BA|MSc|BSC)\s*(\(Hons\))?\s*/gi, ' ');
     n = n.replace(/\s*(BSc|BA|BEng|MEng|MSc|MRes|PhD|BSC|MA|MBA|LLM|MPhil|MMus|PGCE|PGDip|PGCert|EdD|DProf)\b\s*(\(Hons\))?/gi, '');
     n = n.replace(/\(Hons?\)/gi, '');
+    n = n.replace(/\(\s*\)/g, '');
     n = n.replace(/\s*(SW\/FT|FT)\b/g, '');
     n = n.replace(/\s*Programmes?\b/gi, '');
     n = n.replace(/\s*Pathways?\s*\d*/gi, '');
@@ -863,6 +971,11 @@ function renderSunburst({ pane, model, geometryMap }) {
         <div class="info-photo" style="background:${color}22;color:${color}">${escapeHtml(monogram)}</div>
       </div>
       <div class="info-name">${escapeHtml(name)}</div>
+      ${nodeData.tags ? `<div class="info-tags">${[
+        { doctorate: 'Doctorate', masters: 'Masters', other: 'Other PG' }[nodeData.tags.level],
+        nodeData.tags.type,
+        nodeData.tags.mode === 'unknown' ? null : nodeData.tags.mode,
+      ].filter(Boolean).map(t => `<span class="info-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
       <div class="info-dept" style="color:${color}">${vsLabel}</div>
       <div class="info-divider"></div>
       <div class="info-row"><span class="info-row-label">${year} ${escapeHtml(pane.metric)}</span><span style="font-weight:700;font-size:16px">${fmtValue(valueOf(nodeData))}</span></div>

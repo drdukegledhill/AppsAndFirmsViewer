@@ -488,6 +488,88 @@
     [data-theme="light"] .level-flag.level-ug { color: #6d28d9; }
     [data-theme="light"] .level-flag.level-pg { color: #b45309; }
 
+    /* ── PG filter chips ── */
+    .pg-filters {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+    .pg-filters[hidden] {
+      display: none;
+    }
+    .filter-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .filter-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-right: 2px;
+    }
+    .filter-chip {
+      height: 22px;
+      padding: 0 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .filter-chip:hover {
+      color: var(--text-muted);
+      border-color: var(--text-dim);
+    }
+    .filter-chip.active {
+      border-color: #f59e0b88;
+      background: #f59e0b1f;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .filter-chip:focus-visible,
+    .filter-reset:focus-visible {
+      outline: 2px solid #f59e0b;
+      outline-offset: 1px;
+    }
+    .filter-reset {
+      height: 22px;
+      padding: 0 8px;
+      border: none;
+      background: transparent;
+      color: #f59e0b;
+      font: inherit;
+      font-size: 11px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .filter-reset[hidden] {
+      display: none;
+    }
+    [data-theme="light"] .filter-reset { color: #b45309; }
+    .info-tags {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .info-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
     /* ── Toast notification ── */
     #import-toast {
       position: fixed;
@@ -522,10 +604,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 32px;
+      gap: 16px;
       font-size: 12px;
       color: var(--text-muted);
       z-index: 10;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .stat-item {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .stat-year {
+      color: var(--text-dim);
+      margin-left: 4px;
     }
     .stat-value {
       font-weight: 700;
@@ -600,6 +693,7 @@
         <div id="data-level-flag" class="level-flag" aria-live="polite" hidden></div>
         <div id="data-scope-flag" class="scope-flag" aria-live="polite">Scope: No dataset loaded</div>
       </div>
+      <div id="pg-filters" class="pg-filters" aria-label="PG filters" hidden></div>
       <nav id="colour-panel" aria-label="Colour legend">
         <div class="colour-panel-heading">% Change YoY</div>
         <div class="legend-scale">
@@ -644,7 +738,7 @@
 
   <div id="stats-bar"></div>
 
-  <div id="version">v0.6.0</div>
+  <div id="version">v0.7.0</div>
   <a id="app-copyright" aria-label="Copyright" href="https://drduke.uk" target="_blank" rel="noopener noreferrer">© <span id="copyright-year"></span> Dr Duke Gledhill</a>
 
   <script src="vendor/d3.v7.min.js"></script>

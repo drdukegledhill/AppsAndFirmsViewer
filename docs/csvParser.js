@@ -19,6 +19,146 @@
 const YEAR_RE = /^\d{2}\/\d{2}$/;
 
 /**
+ * PG filter definitions. Every PG course is tagged with one value per group
+ * (see classifyPGCourse) and the UI offers one chip per option.
+ */
+export const PG_FILTER_GROUPS = [
+  {
+    key: 'level',
+    label: 'Level',
+    options: [
+      { value: 'doctorate', label: 'Doctorate', title: 'PhD and professional doctorates (EdD, DBA ...)' },
+      { value: 'masters', label: 'Masters', title: 'Taught and research masters (MSc, MA, MBA, LLM, MA/MSc by Research ...)' },
+      { value: 'other', label: 'Other PG', title: 'PGCE, PgDip, PgCert, CPD modules and exchange students' },
+    ],
+  },
+  {
+    key: 'type',
+    label: 'Type',
+    options: [
+      { value: 'PGR', label: 'PGR', title: 'Postgraduate research: doctorates, MA/MSc by Research, research exchange' },
+      { value: 'PGT', label: 'PGT', title: 'Postgraduate taught' },
+    ],
+  },
+  {
+    key: 'mode',
+    label: 'Mode',
+    options: [
+      { value: 'FT', label: 'FT', title: 'Full time' },
+      { value: 'PT', label: 'PT', title: 'Part time' },
+    ],
+  },
+];
+
+/** Selection with every option switched on. */
+export function defaultPGSelection() {
+  const sel = {};
+  PG_FILTER_GROUPS.forEach(g => { sel[g.key] = new Set(g.options.map(o => o.value)); });
+  return sel;
+}
+
+/**
+ * Tag a PG course from its code and name.
+ *  - Mode comes from the course code: ...DPF.. / TPF.. / UUF.. = full time,
+ *    ...DPP.. = part time (the letter after the DP/TP/UU/DU marker). Falls back
+ *    to FT/PT in the course or group name.
+ *  - Level and PGR/PGT come from the award named in the course title.
+ */
+export function classifyPGCourse(code, name, groupName = '') {
+  const text = `${name || ''}`;
+  const both = `${name || ''} ${groupName || ''}`;
+
+  let mode = 'unknown';
+  const m = /^.*(?:DP|TP|UU|DU)([FP])/i.exec(code || '');
+  if (m) mode = m[1].toUpperCase() === 'F' ? 'FT' : 'PT';
+  else if (/\bPT\b|part[- ]time/i.test(both)) mode = 'PT';
+  else if (/\bFT\b|full[- ]time/i.test(both)) mode = 'FT';
+
+  const isDoctorate = /\bPhD\b|\bDoctor\b|\bDoctorate\b|\bEdD\b|\bDBA\b|\bDProf\b|\bDClinPsy\b/i.test(text);
+  const isResearchMasters = /\bby Research\b|\bMRes\b|\bMPhil\b/i.test(text);
+  const isExchange = /Research Exchange/i.test(text);
+  const isMasters = isResearchMasters
+    || /\b(MSc|MA|MBA|LLM|MMus|MFA|MEd|MArch|MPA|MPH|MDes|MSW)\b|\bMaster\b/i.test(text);
+
+  const level = isDoctorate ? 'doctorate' : (isMasters ? 'masters' : 'other');
+  const type = (isDoctorate || isResearchMasters || isExchange) ? 'PGR' : 'PGT';
+
+  return { level, type, mode };
+}
+
+/**
+ * Apply a PG filter selection to a parsed model. Returns a model whose panes
+ * use a filtered copy of the tree (totals recomputed from the remaining courses).
+ * UG models, or a selection with everything switched on, come back unchanged.
+ */
+export function filterModel(model, selection) {
+  if (!model || !model.baseTree || !selection) return model;
+  if (!isFilterActive(selection)) return { ...model, filtered: false };
+
+  const passes = (tags) => PG_FILTER_GROUPS.every(g => {
+    const chosen = selection[g.key];
+    const v = tags?.[g.key];
+    if (!v || v === 'unknown') return chosen.size === g.options.length;
+    return chosen.has(v);
+  });
+
+  const filtered = filterTree(model.baseTree, passes, true);
+  let tree;
+  if (!filtered.children || filtered.children.length === 0) {
+    tree = { ...filtered, children: [], values: emptyValues(model.years) };
+  } else {
+    recomputeTotals(filtered, model.years);
+    tree = displayCopy(filtered, model.displayYears || model.years);
+    if (!tree.children) tree.children = [];
+  }
+  const empty = tree.children.length === 0;
+
+  const summary = [summaryFromTree('Firms', tree, model.current, model.previous)];
+  model.summary.slice(1).forEach(item => {
+    summary.push({
+      ...item,
+      label: item.label.replace(/\)$/, ', unfiltered)'),
+      title: `${item.title || ''} Filters do not apply to this figure.`.trim(),
+    });
+  });
+
+  return {
+    ...model,
+    filtered: true,
+    empty,
+    panes: model.panes.map(p => ({ ...p, tree })),
+    summary,
+  };
+}
+
+export function isFilterActive(selection) {
+  return PG_FILTER_GROUPS.some(g => selection[g.key] && selection[g.key].size < g.options.length);
+}
+
+function filterTree(node, passes, isRoot = false) {
+  if (!node.children) return passes(node.tags) ? { ...node, values: { ...node.values } } : null;
+  const kids = node.children.map(c => filterTree(c, passes)).filter(Boolean);
+  if (!isRoot && kids.length === 0) return null;
+  return { ...node, values: { ...node.values }, children: kids };
+}
+
+/** Copy of a tree with blank-in-all-`years` courses removed (totals left as they were). */
+function displayCopy(tree, years) {
+  const copy = filterTree(tree, () => true, true);
+  pruneAbsent(copy, years);
+  return copy;
+}
+
+function tagPGTree(node, groupName = '') {
+  if (!node.children) {
+    node.tags = classifyPGCourse(node.code, node.name, groupName);
+    return;
+  }
+  const isGroup = node.code && isProgrammeGroup(node.code);
+  node.children.forEach(c => tagPGTree(c, isGroup ? node.name : groupName));
+}
+
+/**
  * Decode raw file bytes. Dashboard exports are sometimes Windows-1252 rather
  * than UTF-8 (non-breaking spaces in course names), so fall back when needed.
  */
@@ -130,9 +270,12 @@ function parsePG(rows, headerIdx, yearCols) {
   const flat = parseSideRows(rows, headerIdx + 1, 0, colYears);
   if (flat.length === 0) throw new Error('No firm rows found in CSV');
 
-  const firms = buildTree(flat, years, 'Firms');
-  // Drop courses that are blank in every year the two panes show.
-  pruneAbsent(firms, [current, previous, beforePrevious].filter(Boolean));
+  // Full tree (totals match the export's Grand Total for every year), tagged for filtering.
+  const fullTree = buildTree(flat, years, 'Firms');
+  tagPGTree(fullTree);
+  // Display tree: drop courses that are blank in every year the two panes show.
+  const displayYears = [current, previous, beforePrevious].filter(Boolean);
+  const firms = displayCopy(fullTree, displayYears);
 
   const meta = { level: 'pg', title: extractTitle(rows, headerIdx), dates: extractDates(rows, headerIdx) };
 
@@ -140,12 +283,12 @@ function parsePG(rows, headerIdx, yearCols) {
   const headlineApps = extractHeadline(rows, headerIdx, 'Apps');
   if (headlineApps && headlineApps[current] != null && headlineApps[previous] != null) {
     summary.push({
-      label: 'Headline apps',
+      label: 'FT apps (headline)',
       cur: headlineApps[current],
       prev: headlineApps[previous],
       curYear: current,
       prevYear: previous,
-      title: 'Applications from the dashboard summary block. The PG export has no course-level application data.',
+      title: 'Applications from the dashboard summary block; the PG export has no course-level application data. The headline figures appear to cover full-time courses only (the headline firms match the FT firms in the course table).',
     });
   }
 
@@ -159,6 +302,9 @@ function parsePG(rows, headerIdx, yearCols) {
       { id: 'left', title: `Total Firms ${current}`, metric: 'Firms', tree: firms, year: current, baseYear: previous },
       { id: 'right', title: `Total Firms ${previous} (same point last year)`, metric: 'Firms', tree: firms, year: previous, baseYear: beforePrevious },
     ],
+    baseTree: fullTree,
+    displayYears,
+    filterGroups: PG_FILTER_GROUPS,
     summary,
     notes: ['PG exports contain firms only; the right-hand pane shows the same point last year.'],
   };
@@ -212,6 +358,7 @@ function buildTree(flatRows, years, rootLabel) {
     const node = {
       name: row.parsed.name,
       shortName: row.parsed.code || abbreviate(row.parsed.name),
+      code: row.parsed.code,
       fullName: row.raw,
       values: { ...row.values },
     };

@@ -22,6 +22,7 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 
 - UG: visualises Total Applications and Total Firms side by side.
 - PG: visualises Total Firms this year next to Total Firms at the same point last year. The PG export only has firms at course level, so applications appear as headline totals in the stats bar.
+- PG filters: narrow both panes by Level (Doctorate, Masters, Other PG), Type (PGR, PGT) and Mode (FT, PT). See PG Filters below.
 - Detects UG or PG automatically; a UG/PG badge next to the scope flag shows which was loaded.
 - Supports school-level and whole-university CSV extracts for both.
 - Lets you drill down by clicking arcs in either sunburst.
@@ -46,6 +47,20 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 - Courses that had nothing in the earlier year show as "New" (full green).
 - In PG, a course left blank in the export (not running that year) shows as "Not listed" in the info panel. Courses blank in every year on screen are left out.
 - When an export has more than two years (PG), the info panel lists every year for the selected arc.
+
+### PG Filters
+
+The filter chips appear in the top bar when a PG file is loaded. All options start switched on; click a chip to include or exclude it, and use Reset to show everything again. At least one option stays on in each group. Totals, colours, the info panel and the stats bar all follow the filters, and pane titles say "filtered" while any filter is off.
+
+The export has no level, type or mode columns, so each course is tagged from its code and title:
+
+| Filter | How it is worked out |
+| --- | --- |
+| Mode | The course code: `DPF`, `TPF`, `UUF`, `DUF` = full time; `DPP` = part time (e.g. `S011DPFHQ` FT, `SP600DPPHQ` PT). Distance learning courses follow the same rule. |
+| Level | Doctorate: PhD and professional doctorates (EdD, DBA, Doctor of ...). Masters: MSc, MA, MBA, LLM, MMus, Master of ..., and MA/MSc by Research. Other PG: PGCE, PgDip, PgCert, CPD modules and research exchange students. |
+| Type | PGR: doctorates, MA/MSc by Research, MRes/MPhil and research exchange. PGT: everything else. |
+
+Hover a course to see its tags in the info panel. The headline applications figure comes from the dashboard summary, cannot be filtered, and appears to cover full-time courses only (the headline firms match the FT firms in the course table).
 
 ### Where To Get The CSV
 
@@ -122,6 +137,7 @@ Set GitHub Pages to publish from the repository `docs/` directory.
 - Keep demo CSVs in `docs/assets/demos/`.
 - Keep logos in `docs/assets/logos/`.
 - `docs/index.html`, `docs/styles.css`, and `docs/sunburst.js` are the main UI and behaviour entry points.
+- PG course tagging lives in `classifyPGCourse()` and the filter options in `PG_FILTER_GROUPS` (both in `docs/csvParser.js`); `filterModel()` rebuilds the trees and totals for a selection.
 - `docs/csvParser.js` detects the UG or PG layout and returns one model for both: `{ level, years, current, previous, meta, panes: [{ id, title, metric, tree, year, baseYear }], summary }`. Tree nodes hold `values` keyed by academic year, so the renderer never hard-codes years.
 - To change what a pane shows, change its `year` / `baseYear` / `tree` in the parser; the renderer follows.
 
