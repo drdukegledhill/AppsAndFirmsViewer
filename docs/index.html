@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SCE UG Applications — Sunburst</title>
+  <title>Applications and Firms Viewer</title>
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="styles.css" />
   <style>
@@ -456,6 +456,38 @@
       background: #22c55e;
     }
 
+    /* ── Dataset level flag (UG / PG) ── */
+    .dataset-flags {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .level-flag {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+    .level-flag[hidden] {
+      display: none;
+    }
+    .level-flag.level-ug {
+      border-color: #a78bfa66;
+      color: #c4b5fd;
+      background: #a78bfa14;
+    }
+    .level-flag.level-pg {
+      border-color: #f59e0b66;
+      color: #fcd34d;
+      background: #f59e0b14;
+    }
+    [data-theme="light"] .level-flag.level-ug { color: #6d28d9; }
+    [data-theme="light"] .level-flag.level-pg { color: #b45309; }
+
     /* ── Toast notification ── */
     #import-toast {
       position: fixed;
@@ -531,15 +563,21 @@
             <img class="uni-logo uni-logo-dark" src="assets/logos/uoh-logo-dark.png" alt="" />
             <img class="uni-logo uni-logo-light" src="assets/logos/uoh-logo-light.png" alt="" />
           </div>
-          <h1 class="topbar-title">UG Applications and Firms Viewer</h1>
+          <h1 class="topbar-title">Applications and Firms Viewer</h1>
         </div>
       </div>
       <div class="topbar-actions">
         <div class="demo-controls" aria-label="Demo datasets">
           <select id="demo-data-select" class="topbar-select" title="Choose demo dataset" aria-label="Choose demo dataset">
             <option value="">Demo data...</option>
-            <option value="school">School demo</option>
-            <option value="university">University demo</option>
+            <optgroup label="Undergraduate (UG)">
+              <option value="school">UG school demo</option>
+              <option value="university">UG university demo</option>
+            </optgroup>
+            <optgroup label="Postgraduate (PG)">
+              <option value="pg-school">PG school demo</option>
+              <option value="pg-university">PG university demo</option>
+            </optgroup>
           </select>
         </div>
         <button id="theme-toggle-btn" class="topbar-btn" title="Switch theme" aria-label="Switch to light mode">
@@ -558,7 +596,10 @@
     </div>
 
     <div class="topbar-meta">
-      <div id="data-scope-flag" class="scope-flag" aria-live="polite">Scope: No dataset loaded</div>
+      <div class="dataset-flags">
+        <div id="data-level-flag" class="level-flag" aria-live="polite" hidden></div>
+        <div id="data-scope-flag" class="scope-flag" aria-live="polite">Scope: No dataset loaded</div>
+      </div>
       <nav id="colour-panel" aria-label="Colour legend">
         <div class="colour-panel-heading">% Change YoY</div>
         <div class="legend-scale">
@@ -569,7 +610,7 @@
             <span>+100%</span>
           </div>
         </div>
-        <div class="legend-inline-note">Size = 26/27 · Colour = YoY</div>
+        <div class="legend-inline-note" id="legend-note">Size = current year · Colour = change vs previous year</div>
       </nav>
     </div>
   </header>
@@ -577,17 +618,17 @@
   <!-- Dual sunburst area -->
   <div id="sunburst-area">
     <div class="sunburst-titles">
-      <div class="sunburst-title">Total Applications</div>
-      <div class="sunburst-title">Total Firms</div>
+      <div class="sunburst-title" id="title-left">UG: Applications · PG: Firms this year</div>
+      <div class="sunburst-title" id="title-right">UG: Firms · PG: Firms last year</div>
     </div>
     <div class="sunburst-row">
-      <div class="sunburst-pane" id="pane-apps">
-        <div class="pane-breadcrumb" id="breadcrumb-apps"></div>
-        <button class="pane-back-btn" id="back-btn-apps" aria-label="Go back">← back</button>
+      <div class="sunburst-pane" id="pane-left">
+        <div class="pane-breadcrumb" id="breadcrumb-left"></div>
+        <button class="pane-back-btn" id="back-btn-left" aria-label="Go back">← back</button>
       </div>
-      <div class="sunburst-pane" id="pane-firms">
-        <div class="pane-breadcrumb" id="breadcrumb-firms"></div>
-        <button class="pane-back-btn" id="back-btn-firms" aria-label="Go back">← back</button>
+      <div class="sunburst-pane" id="pane-right">
+        <div class="pane-breadcrumb" id="breadcrumb-right"></div>
+        <button class="pane-back-btn" id="back-btn-right" aria-label="Go back">← back</button>
       </div>
     </div>
     <div class="centre-icon-list" aria-label="Pane controls">
@@ -603,7 +644,7 @@
 
   <div id="stats-bar"></div>
 
-  <div id="version">v0.5.1</div>
+  <div id="version">v0.6.0</div>
   <a id="app-copyright" aria-label="Copyright" href="https://drduke.uk" target="_blank" rel="noopener noreferrer">© <span id="copyright-year"></span> Dr Duke Gledhill</a>
 
   <script src="vendor/d3.v7.min.js"></script>

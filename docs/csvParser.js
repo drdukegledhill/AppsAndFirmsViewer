@@ -1,56 +1,172 @@
-// csvParser.js — Parse UG Applications Dashboard CSV into sunburst hierarchies
+// csvParser.js: Parse Applications / Firms dashboard CSV exports into sunburst models
 //
-// CSV layout (two side-by-side tables):
-//   Cols A-E:  Application Stats   (name, 25/26 apps, %chg, 26/27 apps, %chg)
+// Two export layouts are supported and detected automatically:
+//
+// UG ("UG Weekly Applications Dashboard"):
+//   Two side-by-side tables, two academic years each.
+//   Cols A-E:  Application Stats   (name, prev apps, %chg, current apps, %chg)
 //   Col  F:    empty separator
-//   Cols G-K:  Firm Stats          (name, 25/26 firms, %chg, 26/27 firms, %chg)
+//   Cols G-K:  Firm Stats          (name, prev firms, %chg, current firms, %chg)
+//
+// PG ("PG Weekly Applications Dashboard", School & Course Level Firms):
+//   One table, firms only, one column per academic year (e.g. 23/24 .. 26/27).
+//   Blank cells mean the course did not run that year; 0 means it ran with no firms.
+//   Applications are only given as headline totals in the summary block.
+//
+// Every tree node carries `values: { '<year>': number | null }`, so the renderer
+// can size and colour a pane by any pair of years without knowing the layout.
+
+const YEAR_RE = /^\d{2}\/\d{2}$/;
 
 /**
- * Parse a raw CSV string into two hierarchical JSON trees.
- * Returns { apps, firms, meta }
+ * Decode raw file bytes. Dashboard exports are sometimes Windows-1252 rather
+ * than UTF-8 (non-breaking spaces in course names), so fall back when needed.
+ */
+export function decodeCSVBytes(buffer) {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+  } catch {
+    return new TextDecoder('windows-1252').decode(buffer);
+  }
+}
+
+/**
+ * Parse a raw CSV string into a render model:
+ * {
+ *   level: 'ug' | 'pg',
+ *   years: ['23/24', ...],           // ascending
+ *   current, previous,               // latest two years
+ *   meta: { title, dates, scope, scopeName },
+ *   panes: [{ id, title, metric, tree, year, baseYear }, { ... }],
+ *   summary: [{ label, cur, prev, curYear, prevYear, title? }],
+ *   notes: [string],
+ * }
  */
 export function parseCSV(csvText) {
-  const rows = parseCSVRows(csvText);
+  const text = String(csvText || '')
+    .replace(/^﻿/, '')
+    .replace(/ /g, ' ');
+  const rows = parseCSVRows(text);
 
-  const meta = extractMeta(rows);
-  const dataStartIdx = findDataStart(rows);
-  if (dataStartIdx < 0) throw new Error('Could not locate data rows in CSV');
+  const headerIdx = findHeaderRow(rows);
+  if (headerIdx < 0) {
+    throw new Error('Unrecognised CSV: could not find the "School and Course" header row');
+  }
 
-  // Parse each side independently so we support:
-  // 1) School-only CSV extracts (apps + firms aligned)
-  // 2) Full university extracts where apps and firms can have different row ranges
-  const flatApps = parseSideRows(rows, {
-    nameCol: 0,
-    val2526Col: 1,
-    val2627Col: 3,
-    pctCol: 4,
-    startIdx: dataStartIdx,
-  });
+  const pgYears = yearColumns(rows[headerIdx], 1);
+  const model = pgYears.length >= 2
+    ? parsePG(rows, headerIdx, pgYears)
+    : parseUG(rows, headerIdx);
 
-  const flatFirms = parseSideRows(rows, {
-    nameCol: 6,
-    val2526Col: 7,
-    val2627Col: 9,
-    pctCol: 10,
-    startIdx: dataStartIdx,
-  });
+  const scope = detectScope(model.panes[0].tree);
+  model.meta.scope = scope.scope;
+  model.meta.scopeName = scope.name;
+  return model;
+}
 
-  if (flatApps.length === 0) throw new Error('No data rows found in CSV');
-  if (flatFirms.length === 0) throw new Error('No firm data rows found in CSV');
+/** Percentage change between two values (null = not present that year). */
+export function changeBetween(prev, cur) {
+  const p = prev == null ? null : prev;
+  const c = cur == null ? null : cur;
+  if (p == null && c == null) return { pct: null, isNew: false };
+  if (!p) {
+    if (c > 0) return { pct: 100, isNew: true };
+    return { pct: p == null ? null : 0, isNew: false };
+  }
+  const pct = Math.round((((c || 0) - p) / p) * 100 * 100) / 100;
+  return { pct, isNew: false };
+}
 
-  const apps  = buildTree(flatApps, 'apps2526', 'apps2627', 'Applications');
-  const firms = buildTree(flatFirms, 'firms2526', 'firms2627', 'Firms');
+// ── UG ─────────────────────────────────────────────────────
 
-  const scope = detectScope(apps);
-  meta.scope = scope.scope;
-  meta.scopeName = scope.name;
+function parseUG(rows, headerIdx) {
+  // Year labels sit in the row above the header: ",25/26,,26/27,,,,25/26,,26/27"
+  const yearRow = rows[headerIdx - 1] || [];
+  const appsPrev = cell(yearRow, 1), appsCur = cell(yearRow, 3);
+  const previous = YEAR_RE.test(appsPrev) ? appsPrev : '25/26';
+  const current = YEAR_RE.test(appsCur) ? appsCur : '26/27';
+  const years = [previous, current];
 
-  return { apps, firms, meta };
+  const colYears = { 1: previous, 3: current };
+  const flatApps = parseSideRows(rows, headerIdx + 1, 0, colYears);
+  const flatFirms = parseSideRows(rows, headerIdx + 1, 6, { 7: previous, 9: current });
+
+  if (flatApps.length === 0) throw new Error('No application rows found in CSV');
+  if (flatFirms.length === 0) throw new Error('No firm rows found in CSV');
+
+  const apps = buildTree(flatApps, years, 'Applications');
+  const firms = buildTree(flatFirms, years, 'Firms');
+
+  const meta = { level: 'ug', title: extractTitle(rows, headerIdx), dates: extractDates(rows, headerIdx) };
+
+  return {
+    level: 'ug',
+    years,
+    current,
+    previous,
+    meta,
+    panes: [
+      { id: 'left', title: 'Total Applications', metric: 'Apps', tree: apps, year: current, baseYear: previous },
+      { id: 'right', title: 'Total Firms', metric: 'Firms', tree: firms, year: current, baseYear: previous },
+    ],
+    summary: [
+      summaryFromTree('Apps', apps, current, previous),
+      summaryFromTree('Firms', firms, current, previous),
+    ],
+    notes: [],
+  };
+}
+
+// ── PG ─────────────────────────────────────────────────────
+
+function parsePG(rows, headerIdx, yearCols) {
+  const colYears = {};
+  yearCols.forEach(({ col, year }) => { colYears[col] = year; });
+  const years = yearCols.map(y => y.year);
+  const current = years[years.length - 1];
+  const previous = years[years.length - 2];
+  const beforePrevious = years.length >= 3 ? years[years.length - 3] : null;
+
+  const flat = parseSideRows(rows, headerIdx + 1, 0, colYears);
+  if (flat.length === 0) throw new Error('No firm rows found in CSV');
+
+  const firms = buildTree(flat, years, 'Firms');
+  // Drop courses that are blank in every year the two panes show.
+  pruneAbsent(firms, [current, previous, beforePrevious].filter(Boolean));
+
+  const meta = { level: 'pg', title: extractTitle(rows, headerIdx), dates: extractDates(rows, headerIdx) };
+
+  const summary = [summaryFromTree('Firms', firms, current, previous)];
+  const headlineApps = extractHeadline(rows, headerIdx, 'Apps');
+  if (headlineApps && headlineApps[current] != null && headlineApps[previous] != null) {
+    summary.push({
+      label: 'Headline apps',
+      cur: headlineApps[current],
+      prev: headlineApps[previous],
+      curYear: current,
+      prevYear: previous,
+      title: 'Applications from the dashboard summary block. The PG export has no course-level application data.',
+    });
+  }
+
+  return {
+    level: 'pg',
+    years,
+    current,
+    previous,
+    meta,
+    panes: [
+      { id: 'left', title: `Total Firms ${current}`, metric: 'Firms', tree: firms, year: current, baseYear: previous },
+      { id: 'right', title: `Total Firms ${previous} (same point last year)`, metric: 'Firms', tree: firms, year: previous, baseYear: beforePrevious },
+    ],
+    summary,
+    notes: ['PG exports contain firms only; the right-hand pane shows the same point last year.'],
+  };
 }
 
 // ── Build hierarchy from flat rows ─────────────────────────
 
-function buildTree(flatRows, key2526, key2627, rootLabel) {
+function buildTree(flatRows, years, rootLabel) {
   const classified = flatRows.map(fr => {
     const parsed = parseCodeName(fr.raw);
     return {
@@ -73,12 +189,9 @@ function buildTree(flatRows, key2526, key2627, rootLabel) {
     root = {
       name: school.raw,
       shortName: abbreviate(school.raw),
-      [key2526]: school.val2526,
-      [key2627]: school.val2627,
-      pctChange: school.pctChange,
+      values: { ...school.values },
       children: [],
     };
-
     const firstSchoolIdx = classified.findIndex(r => r.raw === school.raw);
     startIdx = firstSchoolIdx >= 0 ? firstSchoolIdx + 1 : 0;
   } else {
@@ -86,9 +199,7 @@ function buildTree(flatRows, key2526, key2627, rootLabel) {
     root = {
       name: multiSchoolDataset ? `All Schools (${rootLabel})` : fallbackName,
       shortName: multiSchoolDataset ? 'ALL' : abbreviate(fallbackName),
-      [key2526]: 0,
-      [key2627]: 0,
-      pctChange: 0,
+      values: emptyValues(years),
       children: [],
     };
   }
@@ -102,9 +213,7 @@ function buildTree(flatRows, key2526, key2627, rootLabel) {
       name: row.parsed.name,
       shortName: row.parsed.code || abbreviate(row.parsed.name),
       fullName: row.raw,
-      [key2526]: row.val2526,
-      [key2627]: row.val2627,
-      pctChange: row.pctChange,
+      values: { ...row.values },
     };
 
     if (row.isSchool) {
@@ -122,46 +231,101 @@ function buildTree(flatRows, key2526, key2627, rootLabel) {
       continue;
     }
 
-    if (currentGroup) {
-      currentGroup.children.push(node);
-    } else if (currentSchool) {
-      currentSchool.children.push(node);
-    } else {
-      root.children.push(node);
-    }
+    if (currentGroup) currentGroup.children.push(node);
+    else if (currentSchool) currentSchool.children.push(node);
+    else root.children.push(node);
   }
 
-  recomputeTotals(root, key2526, key2627);
+  recomputeTotals(root, years);
   return root;
+}
+
+/** Parent values = sum of children (null when every child is blank). */
+function recomputeTotals(node, years) {
+  if (!node.children || node.children.length === 0) {
+    const v = {};
+    years.forEach(y => { v[y] = node.values?.[y] ?? null; });
+    node.values = v;
+    delete node.children;
+    return v;
+  }
+
+  const sums = emptyValues(years);
+  for (const child of node.children) {
+    const cv = recomputeTotals(child, years);
+    years.forEach(y => {
+      if (cv[y] != null) sums[y] = (sums[y] || 0) + cv[y];
+    });
+  }
+  node.values = sums;
+  return sums;
+}
+
+/** Remove nodes whose values are blank in all of `years`. Returns true if node should be kept. */
+function pruneAbsent(node, years) {
+  if (node.children) {
+    const hadChildren = node.children.length > 0;
+    node.children = node.children.filter(c => pruneAbsent(c, years));
+    if (hadChildren && node.children.length === 0) {
+      delete node.children;
+      return false;
+    }
+    return true;
+  }
+  return years.some(y => node.values[y] != null);
 }
 
 // ── Helpers ────────────────────────────────────────────────
 
-function parseSideRows(rows, { nameCol, val2526Col, val2627Col, pctCol, startIdx }) {
-  const out = [];
+function cell(row, idx) {
+  return String((row && row[idx]) || '').trim();
+}
 
+function emptyValues(years) {
+  const v = {};
+  years.forEach(y => { v[y] = null; });
+  return v;
+}
+
+function findHeaderRow(rows) {
+  const re = /^School,?\s*(and\s+)?Course/i;
+  for (let i = 0; i < rows.length; i++) {
+    if (re.test(cell(rows[i], 0)) || re.test(cell(rows[i], 6))) return i;
+  }
+  return -1;
+}
+
+/** Contiguous academic-year columns in a row, starting at `fromCol`. */
+function yearColumns(row, fromCol) {
+  const out = [];
+  for (let c = fromCol; c < (row || []).length; c++) {
+    const v = cell(row, c);
+    if (YEAR_RE.test(v)) out.push({ col: c, year: v });
+    else if (out.length) break;
+  }
+  return out;
+}
+
+function parseSideRows(rows, startIdx, nameCol, colYears) {
+  const out = [];
   for (let i = startIdx; i < rows.length; i++) {
     const r = rows[i];
-    const rawName = (r[nameCol] || '').trim();
+    const rawName = cell(r, nameCol).replace(/\s{2,}/g, ' ');
     if (!rawName) continue;
     if (isNoiseRow(rawName)) continue;
     if (/^Grand Total$/i.test(rawName)) break;
 
-    out.push({
-      raw: rawName,
-      val2526: parseNum(r[val2526Col]),
-      val2627: parseNum(r[val2627Col]),
-      pctChange: parsePct(r[pctCol]),
+    const values = {};
+    Object.entries(colYears).forEach(([col, year]) => {
+      values[year] = parseNum(r[Number(col)]);
     });
+    out.push({ raw: rawName, values });
   }
-
   return out;
 }
 
 function isNoiseRow(name) {
-  const n = String(name || '').trim();
-  if (!n) return true;
-  return /^(Application Stats|Firm Stats|Deferral Status|Finance Fee Group|Academic Year|Column Labels|25\/26|26\/27)$/i.test(n);
+  return /^(Application Stats|Firm Stats|Deferral Status|Finance Fee Group|Academic Year|Column Labels|Total Firms|\d{2}\/\d{2})$/i.test(name);
 }
 
 function isSchoolRow(raw, parsedCode) {
@@ -169,45 +333,65 @@ function isSchoolRow(raw, parsedCode) {
   if (!name) return false;
   if (/^Grand Total$/i.test(name)) return false;
   if (parsedCode) return false;
-  if (/^School,?\s*Course/i.test(name)) return false;
+  if (/^School,?\s*(and\s+)?Course/i.test(name)) return false;
   return true;
 }
 
-function recomputeTotals(node, key2526, key2627) {
-  if (!node.children || node.children.length === 0) {
-    return {
-      v2526: Number(node[key2526] || 0),
-      v2627: Number(node[key2627] || 0),
-    };
-  }
-
-  let sum2526 = 0;
-  let sum2627 = 0;
-  for (const child of node.children) {
-    const childTotals = recomputeTotals(child, key2526, key2627);
-    sum2526 += childTotals.v2526;
-    sum2627 += childTotals.v2627;
-  }
-
-  node[key2526] = sum2526;
-  node[key2627] = sum2627;
-  node.pctChange = sum2526 > 0
-    ? Math.round((((sum2627 - sum2526) / sum2526) * 100) * 100) / 100
-    : (sum2627 > 0 ? 100 : 0);
-
-  return { v2526: sum2526, v2627: sum2627 };
+function detectScope(tree) {
+  const rootName = (tree?.name || '').trim();
+  if (/^All Schools/i.test(rootName)) return { scope: 'university', name: 'All Schools' };
+  return { scope: 'school', name: rootName || 'Unknown School' };
 }
 
-function detectScope(appsTree) {
-  const rootName = (appsTree?.name || '').trim();
-  if (/^All Schools/i.test(rootName)) {
-    return { scope: 'university', name: 'All Schools' };
-  }
-
+function summaryFromTree(label, tree, current, previous) {
   return {
-    scope: 'school',
-    name: rootName || 'Unknown School',
+    label,
+    cur: tree.values[current] || 0,
+    prev: tree.values[previous] || 0,
+    curYear: current,
+    prevYear: previous,
   };
+}
+
+function extractTitle(rows, headerIdx) {
+  for (let i = 0; i < Math.min(headerIdx, rows.length); i++) {
+    for (const c of rows[i] || []) {
+      const v = String(c || '').trim();
+      if (/^Weekly\b/i.test(v)) return v;
+    }
+  }
+  return '';
+}
+
+/** Comparison dates, e.g. { '25/26': '23/09/2025', '26/27': '22/09/2026' } */
+function extractDates(rows, headerIdx) {
+  const dates = {};
+  for (let i = 0; i < Math.min(headerIdx, rows.length); i++) {
+    const joined = (rows[i] || []).join(',');
+    const year = joined.match(/Date\s*(\d{2}\/\d{2})/i) || joined.match(/(\d{2}\/\d{2})\s*Date/i);
+    const date = joined.match(/(\d{2}\/\d{2}\/\d{4})/);
+    if (year && date) dates[year[1]] = date[1];
+  }
+  return dates;
+}
+
+/** Headline figure from the summary block above the table (PG), keyed by year. */
+function extractHeadline(rows, headerIdx, label) {
+  let yearMap = null;
+  for (let i = 0; i < Math.min(headerIdx, rows.length); i++) {
+    const r = rows[i] || [];
+    const cols = [];
+    r.forEach((c, idx) => { if (YEAR_RE.test(String(c || '').trim())) cols.push({ col: idx, year: String(c).trim() }); });
+    if (cols.length >= 2) { yearMap = cols; continue; }
+
+    const labelIdx = r.findIndex(c => String(c || '').trim().toLowerCase() === label.toLowerCase());
+    if (labelIdx >= 0 && yearMap) {
+      const out = {};
+      yearMap.forEach(({ col, year }) => { out[year] = parseNum(r[col]); });
+      return out;
+    }
+  }
+  return null;
 }
 
 /** Simple CSV row parser that handles quoted fields */
@@ -245,66 +429,24 @@ function parseCSVRows(text) {
   return rows;
 }
 
-function extractMeta(rows) {
-  const meta = { title: '', date2526: '', date2627: '' };
-  if (rows[0]) meta.title = (rows[0][0] || '').trim();
-  for (let i = 1; i < Math.min(rows.length, 6); i++) {
-    const joined = rows[i].join(',');
-    if (/Date\s*2[56]\/2[67]/i.test(joined)) {
-      const dateMatch = joined.match(/(\d{2}\/\d{2}\/\d{4})/);
-      if (joined.includes('25/26') && dateMatch) meta.date2526 = dateMatch[1];
-      if (joined.includes('26/27') && dateMatch) meta.date2627 = dateMatch[1];
-    }
-  }
-  return meta;
-}
-
-function findDataStart(rows) {
-  for (let i = 0; i < rows.length; i++) {
-    const left = (rows[i][0] || '').trim();
-    const right = (rows[i][6] || '').trim();
-    if (/School,?\s*Course/i.test(left) || /School,?\s*Course/i.test(right)) {
-      return i + 1;
-    }
-  }
-  // Fallback
-  for (let i = 10; i < rows.length; i++) {
-    const name = (rows[i][0] || '').trim();
-    const colB = (rows[i][1] || '').trim();
-    const colD = (rows[i][3] || '').trim();
-    if (name && !name.startsWith(',') && /^\d+$/.test(colB) && /^\d+$/.test(colD)) {
-      return i;
-    }
-  }
-  return -1;
-}
-
 function parseCodeName(raw) {
-  const match = raw.match(/^([A-Z0-9]+(?:UUFHQ\d?)?)\s*-\s*(.+)$/i);
+  const match = raw.match(/^([A-Z0-9]+)\s*-\s*(.+)$/i);
   if (match) return { code: match[1].trim(), name: match[2].trim() };
   return { code: '', name: raw };
 }
 
+/** Programme group codes: SB100, SC300, SP3001, AM3100, XX5008 ... (courses carry UUFHQ/DPFHQ etc.) */
 function isProgrammeGroup(code) {
   if (!code) return false;
-  if (/UUFHQ/i.test(code)) return false;
   return /^[A-Z]{1,3}\d{2,5}$/i.test(code);
 }
 
+/** Number, or null for a blank cell. */
 function parseNum(val) {
-  if (!val) return 0;
-  const cleaned = String(val).replace(/,/g, '').trim();
-  const n = parseInt(cleaned, 10);
-  return isNaN(n) ? 0 : n;
-}
-
-function parsePct(val) {
-  if (!val) return 0;
-  const s = String(val).trim();
-  if (s === '#DIV/0!' || s === '#NULL!' || s === '#N/A' || s === '') return 0;
-  const cleaned = s.replace(/[+%]/g, '').trim();
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? 0 : Math.round(n * 100) / 100;
+  const s = String(val ?? '').replace(/,/g, '').trim();
+  if (!s) return null;
+  const n = parseInt(s, 10);
+  return isNaN(n) ? null : n;
 }
 
 function abbreviate(name) {

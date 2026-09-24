@@ -1,11 +1,13 @@
 # Applications and Firms Viewer
 
-Browser-based viewer for undergraduate applications and firm-count CSV exports, built with vanilla JavaScript and D3.
+Browser-based viewer for undergraduate (UG) and postgraduate (PG) applications and firm-count CSV exports, built with vanilla JavaScript and D3.
 
-The app imports a CSV extract and renders two linked sunburst views:
+The app imports a CSV extract, works out whether it is a UG or PG export, and renders two linked sunburst views:
 
-- Applications
-- Firms
+| Dataset | Left pane | Right pane |
+| --- | --- | --- |
+| UG | Applications (this year) | Firms (this year) |
+| PG | Firms (this year) | Firms (same point last year) |
 
 It supports both single-school datasets and whole-university datasets, keeps both panes in sync when required, and shows summary stats plus drill-down context for the selected hierarchy.
 
@@ -18,14 +20,16 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 
 ### What It Does
 
-- Visualises two related datasets side by side: Total Applications and Total Firms.
-- Supports school-level and whole-university CSV extracts.
+- UG: visualises Total Applications and Total Firms side by side.
+- PG: visualises Total Firms this year next to Total Firms at the same point last year. The PG export only has firms at course level, so applications appear as headline totals in the stats bar.
+- Detects UG or PG automatically; a UG/PG badge next to the scope flag shows which was loaded.
+- Supports school-level and whole-university CSV extracts for both.
 - Lets you drill down by clicking arcs in either sunburst.
 
 ### How To Use It
 
 1. Open the live app link above.
-2. Load data by either selecting School demo or University demo from the Demo data dropdown, or by clicking Import CSV.
+2. Load data by either choosing one of the UG or PG demos from the Demo data dropdown, or by clicking Import CSV.
 3. Explore the chart: hover an arc to preview details, click an arc to zoom, and use back controls to move up the hierarchy.
 4. Optional controls:
 	- Toggle Light/Dark mode.
@@ -35,36 +39,50 @@ Live app: https://drduke.uk/AppsAndFirmsViewer
 	  - Value layout: each chart uses its own geometry based on its own values.
 	  - Compare layout: both charts share the same geometry to make like-for-like visual comparison easier.
 
+### Reading The Colours
+
+- Arc size is the value for the year that pane shows.
+- Arc colour is the % change against the year before that (red = down, green = up, grey = no change or no earlier data).
+- Courses that had nothing in the earlier year show as "New" (full green).
+- In PG, a course left blank in the export (not running that year) shows as "Not listed" in the info panel. Courses blank in every year on screen are left out.
+- When an export has more than two years (PG), the info panel lists every year for the selected arc.
+
 ### Where To Get The CSV
 
-Use data from the dashboard named "UG Weekly Applications Dashboard 2026-27".
+For UG, use the dashboard named "UG Weekly Applications Dashboard 2026-27".
 
-If you cannot access that dashboard, ask me directly. I cannot grant permissions, but I can send you the CSV export.
+For PG, use the "School & Course Level Firms" sheet of the dashboard named "PG Weekly Applications Dashboard 2026-27".
+
+If you cannot access those dashboards, ask me directly. I cannot grant permissions, but I can send you the CSV export.
 
 ### Export Steps (Browser Excel)
 
+The steps are the same for UG and PG; open the matching dashboard.
+
 For school-level data:
 
-1. Open "UG Weekly Applications Dashboard 2026-27" in browser Excel.
+1. Open the UG or PG weekly applications dashboard in browser Excel.
 2. Use the pivot table filters to select the school you want.
 3. Export using File > Export > Download as CSV.
 4. Import that CSV into the viewer.
 
 For whole-university data:
 
-1. Open "UG Weekly Applications Dashboard 2026-27" in browser Excel.
+1. Open the UG or PG weekly applications dashboard in browser Excel.
 2. Clear the school filters in the pivot table.
 3. Export using File > Export > Download as CSV.
 4. Import that CSV into the viewer.
 
 ### CSV Format Expected
 
-The parser expects exported CSVs with two side-by-side tables:
+UG exports have two side-by-side tables:
 
-- Application stats in columns A-E
+- Application stats in columns A-E (previous year, % change, current year, % change)
 - Firm stats in columns G-K
 
-It ignores dashboard header noise, detects whether data is school-level or university-wide, and converts rows into hierarchical sunburst structures.
+PG exports have a single firms table, one column per academic year (for example 23/24 to 26/27 in columns B-E). Blank cells mean the course did not run that year; 0 means it ran with no firms.
+
+The parser finds the "School and Course" header row, reads the academic years from the export rather than assuming them, ignores dashboard header noise, detects whether data is school-level or university-wide, and converts rows into hierarchical sunburst structures. Files saved as UTF-8 or Windows-1252 both work.
 
 </details>
 
@@ -76,7 +94,8 @@ It ignores dashboard header noise, detects whether data is school-level or unive
 ### Project Structure
 
 - `docs/` contains the browser app and is the single source of truth for deployment.
-- `docs/assets/demos/` contains sample CSV datasets used by the demo-data selector.
+- `docs/assets/demos/` contains fictional sample CSV datasets used by the demo-data selector (UG and PG, school and university).
+- Real dashboard exports dropped in the project root are ignored by git (`/*.csv` in `.gitignore`).
 
 ### Prerequisites
 
@@ -103,5 +122,7 @@ Set GitHub Pages to publish from the repository `docs/` directory.
 - Keep demo CSVs in `docs/assets/demos/`.
 - Keep logos in `docs/assets/logos/`.
 - `docs/index.html`, `docs/styles.css`, and `docs/sunburst.js` are the main UI and behaviour entry points.
+- `docs/csvParser.js` detects the UG or PG layout and returns one model for both: `{ level, years, current, previous, meta, panes: [{ id, title, metric, tree, year, baseYear }], summary }`. Tree nodes hold `values` keyed by academic year, so the renderer never hard-codes years.
+- To change what a pane shows, change its `year` / `baseYear` / `tree` in the parser; the renderer follows.
 
 </details>

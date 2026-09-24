@@ -1,5 +1,10 @@
-// sunburst.js — Dual UG Applications Sunburst (apps + firms)
-import { parseCSV } from './csvParser.js';
+// sunburst.js: Dual Applications / Firms sunbursts for UG and PG dashboard exports
+//
+// The parser returns a model with two panes (left / right). Each pane names the
+// tree to draw, the year that sizes the arcs and the base year used for colour.
+//   UG: left = Applications, right = Firms (both current year vs previous)
+//   PG: left = Firms current year, right = Firms previous year (same point last year)
+import { parseCSV, decodeCSVBytes, changeBetween } from './csvParser.js';
 
 const INNER_R   = 80;
 const RING_W    = 70;
@@ -7,18 +12,20 @@ const MAX_RINGS = 4;
 
 const syncState = {
   locked: true,
-  lastActivePane: 'apps',
+  lastActivePane: 'left',
   syncing: false,
   controllers: {
-    apps: null,
-    firms: null,
+    left: null,
+    right: null,
   },
 };
 
+const PANE_KEYS = ['left', 'right'];
+const otherPane = (key) => (key === 'left' ? 'right' : 'left');
+
 const layoutState = {
   mode: 'value',
-  latestData: null,
-  latestMeta: null,
+  latestModel: null,
 };
 
 const THEME_STORAGE_KEY = 'app-theme';
@@ -29,14 +36,24 @@ const THEMES = {
 
 const DEMO_DATASETS = {
   school: {
-    label: 'School demo',
+    label: 'UG school demo',
     filename: 'DEMO_School.csv',
     path: 'assets/demos/DEMO_School.csv',
   },
   university: {
-    label: 'University demo',
+    label: 'UG university demo',
     filename: 'DEMO_University.csv',
     path: 'assets/demos/DEMO_University.csv',
+  },
+  'pg-school': {
+    label: 'PG school demo',
+    filename: 'DEMO_PG_School.csv',
+    path: 'assets/demos/DEMO_PG_School.csv',
+  },
+  'pg-university': {
+    label: 'PG university demo',
+    filename: 'DEMO_PG_University.csv',
+    path: 'assets/demos/DEMO_PG_University.csv',
   },
 };
 
@@ -113,32 +130,70 @@ function setCopyrightYear() {
   yearEl.textContent = String(new Date().getFullYear());
 }
 
-function updateDataScopeFlag(meta, appsData) {
+function updateDataScopeFlag(model) {
   const el = document.getElementById('data-scope-flag');
+  const levelEl = document.getElementById('data-level-flag');
   if (!el) return;
 
   el.classList.remove('scope-uni', 'scope-school');
 
-  if (!appsData) {
+  if (levelEl) {
+    levelEl.classList.remove('level-ug', 'level-pg');
+    levelEl.hidden = !model;
+    if (model) {
+      levelEl.classList.add(`level-${model.level}`);
+      levelEl.textContent = model.level.toUpperCase();
+      levelEl.title = model.level === 'pg' ? 'Postgraduate dataset' : 'Undergraduate dataset';
+    }
+  }
+
+  if (!model) {
     el.textContent = 'Scope: No dataset loaded';
     el.title = el.textContent;
     return;
   }
 
-  const isUni = meta?.scope === 'university' || /^All Schools/i.test(appsData.name || '');
-  const schoolName = meta?.scopeName && meta.scopeName !== 'All Schools'
+  const meta = model.meta || {};
+  const tree = model.panes[0].tree;
+  const isUni = meta.scope === 'university' || /^All Schools/i.test(tree?.name || '');
+  const schoolName = meta.scopeName && meta.scopeName !== 'All Schools'
     ? meta.scopeName
-    : (isUni ? 'All Schools' : (appsData.name || 'School dataset'));
+    : (isUni ? 'All Schools' : (tree?.name || 'School dataset'));
 
   if (isUni) {
     el.classList.add('scope-uni');
     el.textContent = 'Scope: Whole University';
   } else {
     el.classList.add('scope-school');
-    el.textContent = `Scope: School — ${schoolName}`;
+    el.textContent = `Scope: School: ${schoolName}`;
   }
 
   el.title = el.textContent;
+}
+
+function updateHeadings(model) {
+  const titles = {
+    left: document.getElementById('title-left'),
+    right: document.getElementById('title-right'),
+  };
+  const note = document.getElementById('legend-note');
+
+  if (!model) {
+    if (titles.left) titles.left.textContent = 'UG: Applications · PG: Firms this year';
+    if (titles.right) titles.right.textContent = 'UG: Firms · PG: Firms last year';
+    if (note) note.textContent = 'Size = current year · Colour = change vs previous year';
+    return;
+  }
+
+  model.panes.forEach(p => {
+    if (titles[p.id]) titles[p.id].textContent = p.title;
+  });
+
+  if (note) {
+    note.textContent = model.level === 'pg'
+      ? 'Size = pane year · Colour = change vs year before'
+      : `Size = ${model.current} · Colour = change vs ${model.previous}`;
+  }
 }
 
 function applyTransformToPane(paneKey, transform) {
@@ -164,8 +219,7 @@ function handlePaneTransformChange(sourcePaneKey, transform, isUserInteraction) 
 
   if (!syncState.locked || syncState.syncing) return;
 
-  const targetPaneKey = sourcePaneKey === 'apps' ? 'firms' : 'apps';
-  applyTransformToPane(targetPaneKey, transform);
+  applyTransformToPane(otherPane(sourcePaneKey), transform);
 }
 
 function handlePaneFocusChange(sourcePaneKey, pathKey, isUserInteraction) {
@@ -175,18 +229,17 @@ function handlePaneFocusChange(sourcePaneKey, pathKey, isUserInteraction) {
 
   if (!syncState.locked || syncState.syncing) return;
 
-  const targetPaneKey = sourcePaneKey === 'apps' ? 'firms' : 'apps';
-  applyFocusPathToPane(targetPaneKey, pathKey);
+  applyFocusPathToPane(otherPane(sourcePaneKey), pathKey);
 }
 
 function trySnapPanesOnLock() {
   const preferredSource = syncState.controllers[syncState.lastActivePane];
-  const fallbackSource = syncState.controllers.apps || syncState.controllers.firms;
+  const fallbackSource = syncState.controllers.left || syncState.controllers.right;
   const source = preferredSource || fallbackSource;
   if (!source) return;
 
-  const sourceKey = preferredSource ? syncState.lastActivePane : (syncState.controllers.apps ? 'apps' : 'firms');
-  const targetKey = sourceKey === 'apps' ? 'firms' : 'apps';
+  const sourceKey = preferredSource ? syncState.lastActivePane : (syncState.controllers.left ? 'left' : 'right');
+  const targetKey = otherPane(sourceKey);
   const t = source.getTransform();
   if (!t) return;
 
@@ -218,7 +271,7 @@ function setupLayoutModeButton() {
   if (!btn) return;
 
   btn.addEventListener('click', () => {
-    if (!layoutState.latestData || !layoutState.latestData.firmsData) {
+    if (!layoutState.latestModel) {
       showToast('Load a CSV first to compare layouts', true);
       return;
     }
@@ -226,28 +279,21 @@ function setupLayoutModeButton() {
     layoutState.mode = layoutState.mode === 'value' ? 'compare' : 'value';
     updateLayoutModeButtonUI();
 
-    const preservedView = {
-      apps: {
-        focusPath: syncState.controllers.apps?.getFocusPath?.() || null,
-        transform: syncState.controllers.apps?.getTransform?.() || null,
-      },
-      firms: {
-        focusPath: syncState.controllers.firms?.getFocusPath?.() || null,
-        transform: syncState.controllers.firms?.getTransform?.() || null,
-      },
-      lastActivePane: syncState.lastActivePane,
-    };
+    const preservedView = { lastActivePane: syncState.lastActivePane };
+    PANE_KEYS.forEach((key) => {
+      preservedView[key] = {
+        focusPath: syncState.controllers[key]?.getFocusPath?.() || null,
+        transform: syncState.controllers[key]?.getTransform?.() || null,
+      };
+    });
 
-    const { appsData, firmsData } = layoutState.latestData;
-    document.getElementById('pane-apps').querySelectorAll('svg').forEach(s => s.remove());
-    document.getElementById('pane-firms').querySelectorAll('svg').forEach(s => s.remove());
-    renderDual(appsData, firmsData, layoutState.latestMeta);
+    renderModel(layoutState.latestModel);
 
     if (preservedView.lastActivePane) {
       syncState.lastActivePane = preservedView.lastActivePane;
     }
 
-    ['apps', 'firms'].forEach((paneKey) => {
+    PANE_KEYS.forEach((paneKey) => {
       const ctrl = syncState.controllers[paneKey];
       const state = preservedView[paneKey];
       if (!ctrl || !state) return;
@@ -262,6 +308,7 @@ function setupLayoutModeButton() {
     if (syncState.locked) {
       trySnapPanesOnLock();
     }
+    syncState.controllers[syncState.lastActivePane]?.showInfo();
 
     showToast(layoutState.mode === 'compare' ? 'Compare layout enabled' : 'Value layout enabled');
   });
@@ -278,7 +325,7 @@ function setupResetViewButton() {
   btn.setAttribute('title', 'Reset zoom');
 
   btn.addEventListener('click', () => {
-    const ctrls = [syncState.controllers.apps, syncState.controllers.firms].filter(Boolean);
+    const ctrls = PANE_KEYS.map(k => syncState.controllers[k]).filter(Boolean);
     if (ctrls.length === 0) {
       showToast('Load a CSV first', true);
       return;
@@ -287,6 +334,7 @@ function setupResetViewButton() {
     syncState.syncing = true;
     ctrls.forEach(ctrl => ctrl.resetView && ctrl.resetView());
     syncState.syncing = false;
+    (syncState.controllers[syncState.lastActivePane] || ctrls[0]).showInfo?.();
 
     showToast('Zoom reset');
   });
@@ -300,10 +348,10 @@ function hierarchyPathKey(node) {
   return node.ancestors().reverse().map(a => nodeLabelKey(a.data)).join('›');
 }
 
-function buildGeometryMap(treeData, valueKey) {
+function buildGeometryMap(treeData, year) {
   if (!treeData) return null;
   const root = d3.hierarchy(treeData)
-    .sum(d => d.children ? 0 : Math.max(d[valueKey] || 1, 1))
+    .sum(d => d.children ? 0 : Math.max(d.values?.[year] || 1, 1))
     .sort((a, b) => b.value - a.value);
 
   d3.partition().size([2 * Math.PI, root.height + 1])(root);
@@ -334,28 +382,44 @@ function pctColor(pct) {
   }
 }
 
+// ── Change / formatting helpers ───────────────────────
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function describeChange(prev, cur, hasBase = true) {
+  if (!hasBase) return { pct: null, label: 'n/a' };
+  const { pct, isNew } = changeBetween(prev, cur);
+  if (isNew) return { pct: 100, label: 'New' };
+  if (pct == null) return { pct: null, label: 'n/a' };
+  return { pct, label: pct > 0 ? `+${pct}%` : `${pct}%` };
+}
+
+function fmtValue(v) {
+  return v == null ? 'Not listed' : Number(v).toLocaleString();
+}
+
 // ── Stats bar ─────────────────────────────────────────────
-function updateStatsBar(appsData, firmsData) {
+function updateStatsBar(model) {
   const bar = document.getElementById('stats-bar');
   if (!bar) return;
 
-  const a27 = appsData.apps2627 || 0, a26 = appsData.apps2526 || 0;
-  const aPct = appsData.pctChange || 0;
-  const f27 = firmsData.firms2627 || 0, f26 = firmsData.firms2526 || 0;
-  const fPct = firmsData.pctChange || 0;
+  const parts = model.summary.map(item => {
+    const ch = describeChange(item.prev, item.cur);
+    const col = ch.pct == null ? 'var(--text-dim)' : (ch.pct >= 0 ? '#22c55e' : '#ef4444');
+    const title = item.title ? ` title="${escapeHtml(item.title)}"` : '';
+    return `
+      <span${title}>${escapeHtml(item.label)} ${item.curYear}: <span class="stat-value">${fmtValue(item.cur)}</span></span>
+      <span${title}>${escapeHtml(item.label)} ${item.prevYear}: <span class="stat-value">${fmtValue(item.prev)}</span></span>
+      <span${title} style="color:${col};font-weight:600">${ch.label}</span>`;
+  });
 
-  const fmt = (p) => p >= 0 ? `+${p}%` : `${p}%`;
-  const col = (p) => p >= 0 ? '#22c55e' : '#ef4444';
+  const dates = model.meta?.dates || {};
+  if (dates[model.current] && dates[model.previous]) {
+    parts.push(`<span style="color:var(--text-dim)" title="Comparison dates from the export">As at ${dates[model.current]} vs ${dates[model.previous]}</span>`);
+  }
 
-  bar.innerHTML = `
-    <span>Apps 26/27: <span class="stat-value">${a27.toLocaleString()}</span></span>
-    <span>Apps 25/26: <span class="stat-value">${a26.toLocaleString()}</span></span>
-    <span style="color:${col(aPct)};font-weight:600">${fmt(aPct)}</span>
-    <span class="stat-divider"></span>
-    <span>Firms 26/27: <span class="stat-value">${f27.toLocaleString()}</span></span>
-    <span>Firms 25/26: <span class="stat-value">${f26.toLocaleString()}</span></span>
-    <span style="color:${col(fPct)};font-weight:600">${fmt(fPct)}</span>
-  `;
+  bar.innerHTML = parts.join('<span class="stat-divider"></span>');
 }
 
 // ── Init ──────────────────────────────────────────────────
@@ -372,10 +436,8 @@ async function init() {
 }
 
 function renderEmptyState() {
-  const appsPane = document.getElementById('pane-apps');
-  const firmsPane = document.getElementById('pane-firms');
-
-  [appsPane, firmsPane].forEach((pane, idx) => {
+  PANE_KEYS.forEach((key) => {
+    const pane = document.getElementById(`pane-${key}`);
     if (!pane) return;
     pane.querySelectorAll('svg').forEach(s => s.remove());
     pane.querySelectorAll('.no-data-msg').forEach(m => m.remove());
@@ -383,9 +445,7 @@ function renderEmptyState() {
     const msg = document.createElement('div');
     msg.className = 'no-data-msg';
     msg.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;';
-    msg.textContent = idx === 0
-      ? 'Import a CSV to view application data'
-      : 'Import a CSV to view firm data';
+    msg.textContent = 'Import a UG or PG CSV to view data';
     pane.appendChild(msg);
   });
 
@@ -396,10 +456,12 @@ function renderEmptyState() {
 
   const bar = document.getElementById('stats-bar');
   if (bar) {
-    bar.innerHTML = '<span style="color:var(--text-dim)">No data loaded — import a CSV to begin</span>';
+    bar.innerHTML = '<span style="color:var(--text-dim)">No data loaded. Import a CSV to begin</span>';
   }
 
-  updateDataScopeFlag(null, null);
+  layoutState.latestModel = null;
+  updateDataScopeFlag(null);
+  updateHeadings(null);
 }
 
 function setupCSVImport() {
@@ -414,7 +476,7 @@ function setupCSVImport() {
     if (!file) return;
 
     try {
-      const text = await file.text();
+      const text = decodeCSVBytes(await file.arrayBuffer());
       loadCSVText(text, file.name);
     } catch (err) {
       console.error('CSV parse error', err);
@@ -460,7 +522,7 @@ async function loadCSVFromPath(path, label) {
     for (const url of candidates) {
       const response = await fetch(url, { cache: 'no-store' });
       if (response.ok) {
-        const text = await response.text();
+        const text = decodeCSVBytes(await response.arrayBuffer());
         loadCSVText(text, label);
         return;
       }
@@ -475,13 +537,9 @@ async function loadCSVFromPath(path, label) {
 }
 
 function loadCSVText(text, sourceLabel) {
-  const { apps, firms, meta } = parseCSV(text);
-
-  // Clear and re-render both panes using the new dataset.
-  document.getElementById('pane-apps').querySelectorAll('svg').forEach(s => s.remove());
-  document.getElementById('pane-firms').querySelectorAll('svg').forEach(s => s.remove());
-  renderDual(apps, firms, meta);
-  showToast(`Loaded: ${sourceLabel}`);
+  const model = parseCSV(text);
+  renderModel(model);
+  showToast(`Loaded ${model.level.toUpperCase()} data: ${sourceLabel}`);
 }
 
 function showToast(msg, isError = false) {
@@ -497,97 +555,51 @@ function showToast(msg, isError = false) {
   setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 
-// ── Render dual sunbursts ─────────────────────────────────
+// ── Render both panes from a parsed model ─────────────────
 
-function renderDual(appsData, firmsData, meta = null) {
-  layoutState.latestData = { appsData, firmsData };
-  layoutState.latestMeta = meta;
+function renderModel(model) {
+  layoutState.latestModel = model;
 
-  updateDataScopeFlag(meta, appsData);
+  updateDataScopeFlag(model);
+  updateHeadings(model);
 
-  syncState.controllers.apps = null;
-  syncState.controllers.firms = null;
-
-  const appsValKey  = appsData.apps2627 != null ? 'apps2627' : 'val2627';
-  const appsPrevKey = appsData.apps2526 != null ? 'apps2526' : 'val2526';
-
-  if (!firmsData && layoutState.mode === 'compare') {
-    layoutState.mode = 'value';
-    updateLayoutModeButtonUI();
-  }
-
-  const sharedGeometryMap = (layoutState.mode === 'compare' && firmsData)
-    ? buildGeometryMap(appsData, appsValKey)
-    : null;
-
-  // Render apps sunburst (always)
-  renderSunburst({
-    paneKey: 'apps',
-    containerId: 'pane-apps',
-    breadcrumbId: 'breadcrumb-apps',
-    backBtnId: 'back-btn-apps',
-    treeData: appsData,
-    valueKey: appsValKey,
-    prevKey: appsPrevKey,
-    label2627: '26/27 Apps',
-    label2526: '25/26 Apps',
-    geometryMap: sharedGeometryMap,
+  PANE_KEYS.forEach((key) => {
+    syncState.controllers[key] = null;
+    const pane = document.getElementById(`pane-${key}`);
+    pane.querySelectorAll('svg').forEach(s => s.remove());
+    pane.querySelectorAll('.no-data-msg').forEach(m => m.remove());
   });
 
-  if (firmsData) {
-    const firmsValKey  = firmsData.firms2627 != null ? 'firms2627' : 'val2627';
-    const firmsPrevKey = firmsData.firms2526 != null ? 'firms2526' : 'val2526';
+  // Compare layout: both panes use the left pane's geometry.
+  const leftPane = model.panes[0];
+  const sharedGeometryMap = layoutState.mode === 'compare'
+    ? buildGeometryMap(leftPane.tree, leftPane.year)
+    : null;
 
-    renderSunburst({
-      paneKey: 'firms',
-      containerId: 'pane-firms',
-      breadcrumbId: 'breadcrumb-firms',
-      backBtnId: 'back-btn-firms',
-      treeData: firmsData,
-      valueKey: firmsValKey,
-      prevKey: firmsPrevKey,
-      label2627: '26/27 Firms',
-      label2526: '25/26 Firms',
-      geometryMap: sharedGeometryMap,
-    });
+  model.panes.forEach(pane => renderSunburst({ pane, model, geometryMap: sharedGeometryMap }));
 
-    if (syncState.locked) {
-      trySnapPanesOnLock();
-    }
-
-    updateStatsBar(appsData, firmsData);
-  } else {
-    // No firms data — show placeholder
-    const firmsPane = document.getElementById('pane-firms');
-    if (!firmsPane.querySelector('.no-data-msg')) {
-      const msg = document.createElement('div');
-      msg.className = 'no-data-msg';
-      msg.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;';
-      msg.textContent = 'Import a CSV to view firm data';
-      firmsPane.appendChild(msg);
-    }
-
-    // Stats bar apps-only
-    const bar = document.getElementById('stats-bar');
-    if (bar) {
-      const a27 = appsData[appsValKey] || 0, a26 = appsData[appsPrevKey] || 0;
-      const aPct = appsData.pctChange || 0;
-      const fmt = (p) => p >= 0 ? `+${p}%` : `${p}%`;
-      const col = (p) => p >= 0 ? '#22c55e' : '#ef4444';
-      bar.innerHTML = `
-        <span>Apps 26/27: <span class="stat-value">${a27.toLocaleString()}</span></span>
-        <span>Apps 25/26: <span class="stat-value">${a26.toLocaleString()}</span></span>
-        <span style="color:${col(aPct)};font-weight:600">${fmt(aPct)}</span>
-        <span class="stat-divider"></span>
-        <span style="color:var(--text-dim)">Import CSV for firm data</span>
-      `;
-    }
+  if (syncState.locked) {
+    trySnapPanesOnLock();
   }
+
+  // Info panel starts on the left (primary) pane.
+  syncState.controllers.left?.showInfo();
+  updateStatsBar(model);
 }
 
 // ── Generic sunburst renderer ─────────────────────────────
 
-function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeData, valueKey, prevKey, label2627, label2526, geometryMap }) {
+function renderSunburst({ pane, model, geometryMap }) {
+  const paneKey = pane.id;
+  const containerId = `pane-${paneKey}`;
+  const breadcrumbId = `breadcrumb-${paneKey}`;
+  const backBtnId = `back-btn-${paneKey}`;
+  const treeData = pane.tree;
+  const year = pane.year;
+  const baseYear = pane.baseYear;
+  const valueOf = (data) => data?.values?.[year];
+  const changeOf = (data) => describeChange(data?.values?.[baseYear], data?.values?.[year], !!baseYear);
+
   const container = document.getElementById(containerId);
 
   // Remove old placeholder message
@@ -621,7 +633,7 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
 
   // ── Hierarchy & layout ───────────────────────────────
   const root = d3.hierarchy(treeData)
-    .sum(d => d.children ? 0 : Math.max(d[valueKey] || 1, 1))
+    .sum(d => d.children ? 0 : Math.max(valueOf(d) || 1, 1))
     .sort((a, b) => b.value - a.value);
 
   d3.partition().size([2 * Math.PI, root.height + 1])(root);
@@ -647,7 +659,7 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
   function shortLabel(d) {
     let n = d.name || d.shortName || '';
     n = n.replace(/\s*(MEng|BEng|BSc|BA|MSc|MRes|PhD)\s*\/\s*(MEng|BEng|BSc|BA|MSc|BSC)\s*(\(Hons\))?\s*/gi, ' ');
-    n = n.replace(/\s*(BSc|BA|BEng|MEng|MSc|MRes|PhD|BSC)\b\s*(\(Hons\))?/gi, '');
+    n = n.replace(/\s*(BSc|BA|BEng|MEng|MSc|MRes|PhD|BSC|MA|MBA|LLM|MPhil|MMus|PGCE|PGDip|PGCert|EdD|DProf)\b\s*(\(Hons\))?/gi, '');
     n = n.replace(/\(Hons?\)/gi, '');
     n = n.replace(/\s*(SW\/FT|FT)\b/g, '');
     n = n.replace(/\s*Programmes?\b/gi, '');
@@ -707,7 +719,7 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
     .data(root.descendants().filter(d => d.depth > 0))
     .join('path')
     .attr('class', 'arc-path')
-    .attr('fill', d => pctColor(d.data.pctChange))
+    .attr('fill', d => pctColor(changeOf(d.data).pct))
     .attr('fill-opacity', d => arcVisible(d.current) ? ringOpacity(d) : 0)
     .attr('d', d => arc(d.current))
     .on('mouseover', (e, d) => { showCentreInfo(d.data); updateInfoPanel(d.data); })
@@ -750,7 +762,8 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
     .attr('y', namePillY).attr('font-size', '11px').attr('font-weight', '600').style('fill', 'var(--centre-text)');
 
   const backBtn = document.getElementById(backBtnId);
-  backBtn.addEventListener('click', () => zoomTo(focusNode.parent || focusNode, true));
+  // Assign (not add) handlers so re-renders don't stack listeners from old charts.
+  backBtn.onclick = () => zoomTo(focusNode.parent || focusNode, true);
 
   // ── Zoom ─────────────────────────────────────────────
   let focusNode = root;
@@ -793,7 +806,8 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
     backBtn.classList.toggle('visible', p.depth > 0);
     updateBreadcrumb(p);
     showCentreInfo(p.data);
-    updateInfoPanel(p.data);
+    // A pane following its partner via sync must not overwrite the partner's info panel.
+    if (!syncState.syncing) updateInfoPanel(p.data);
 
     if (!skipSync) {
       handlePaneFocusChange(paneKey, hierarchyPathKey(p), isUserInteraction);
@@ -815,14 +829,11 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
     if (!panel) return;
 
     const name = nodeData.name || nodeData.shortName || '';
-    const pct  = nodeData.pctChange;
-    const color = pctColor(pct);
-    const pctLabel = pct > 0 ? `+${pct}%` : `${pct}%`;
+    const ch = changeOf(nodeData);
+    const color = pctColor(ch.pct);
+    const vsLabel = baseYear ? `${ch.label} vs ${baseYear}` : 'No earlier year in this export';
 
     const monogram = nodeData.shortName || name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
-
-    const val27 = nodeData[valueKey] || 0;
-    const val26 = nodeData[prevKey] || 0;
 
     const hasChildren = nodeData.children && nodeData.children.length;
     let childRows = '';
@@ -830,30 +841,37 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
       childRows = `<div class="info-section-label">Breakdown</div>
         <ul class="info-centres">${
           nodeData.children.map(c => {
-            const cpct = c.pctChange;
-            const cLabel = cpct > 0 ? `+${cpct}%` : `${cpct}%`;
+            const cch = changeOf(c);
             return `<li>
-              <span class="info-centre-dot" style="background:${pctColor(cpct)}"></span>
-              <span style="flex:1">${c.name}</span>
-              <span style="font-weight:600;color:${pctColor(cpct)}">${cLabel}</span>
+              <span class="info-centre-dot" style="background:${pctColor(cch.pct)}"></span>
+              <span style="flex:1">${escapeHtml(c.name)}</span>
+              <span style="font-weight:600;color:${pctColor(cch.pct)}">${cch.label}</span>
             </li>`;
           }).join('')
         }</ul>`;
     }
 
+    let historyRows = '';
+    if (model.years.length > 2) {
+      historyRows = `<div class="info-section-label">${escapeHtml(pane.metric)} by year</div>
+        ${model.years.map(y => `<div class="info-row"><span class="info-row-label">${y}${y === year ? ' (this pane)' : ''}</span><span${y === year ? ' style="font-weight:700"' : ''}>${fmtValue(nodeData.values?.[y])}</span></div>`).join('')}
+        <div class="info-divider"></div>`;
+    }
+
     panel.innerHTML = `
       <div class="info-photo-wrap">
-        <div class="info-photo" style="background:${color}22;color:${color}">${monogram}</div>
+        <div class="info-photo" style="background:${color}22;color:${color}">${escapeHtml(monogram)}</div>
       </div>
-      <div class="info-name">${name}</div>
-      <div class="info-dept" style="color:${color}">${pctLabel} year-on-year</div>
+      <div class="info-name">${escapeHtml(name)}</div>
+      <div class="info-dept" style="color:${color}">${vsLabel}</div>
       <div class="info-divider"></div>
-      <div class="info-row"><span class="info-row-label">${label2627}</span><span style="font-weight:700;font-size:16px">${val27.toLocaleString()}</span></div>
-      <div class="info-row"><span class="info-row-label">${label2526}</span><span>${val26.toLocaleString()}</span></div>
-      <div class="info-row"><span class="info-row-label">Change</span><span style="color:${color};font-weight:600">${pctLabel}</span></div>
+      <div class="info-row"><span class="info-row-label">${year} ${escapeHtml(pane.metric)}</span><span style="font-weight:700;font-size:16px">${fmtValue(valueOf(nodeData))}</span></div>
+      ${baseYear ? `<div class="info-row"><span class="info-row-label">${baseYear} ${escapeHtml(pane.metric)}</span><span>${fmtValue(nodeData.values?.[baseYear])}</span></div>` : ''}
+      <div class="info-row"><span class="info-row-label">Change</span><span style="color:${color};font-weight:600">${ch.label}</span></div>
       <div class="info-divider"></div>
+      ${historyRows}
       ${childRows}
-      ${!hasChildren ? '<div class="info-empty" style="margin-top:8px;font-size:11px;color:var(--text-dim)">Individual course — no further breakdown</div>' : ''}
+      ${!hasChildren ? '<div class="info-empty" style="margin-top:8px;font-size:11px;color:var(--text-dim)">Individual course: no further breakdown</div>' : ''}
     `;
   }
 
@@ -875,13 +893,13 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
   const bc = document.getElementById(breadcrumbId);
   let bcFocusNode = null;
 
-  bc.addEventListener('click', e => {
+  bc.onclick = e => {
     const el = e.target.closest('.bc-link');
     if (!el || !bcFocusNode) return;
     const depth = +el.dataset.depth;
     const target = bcFocusNode.ancestors().find(a => a.depth === depth);
     if (target) zoomTo(target, true);
-  });
+  };
 
   function updateBreadcrumb(p) {
     bcFocusNode = p;
@@ -904,6 +922,7 @@ function renderSunburst({ paneKey, containerId, breadcrumbId, backBtnId, treeDat
   zoomTo(root, false, true);
 
   syncState.controllers[paneKey] = {
+    showInfo: () => updateInfoPanel(focusNode.data),
     getTransform: () => currentTransform,
     setTransform: (t) => svg.call(zoomBehavior.transform, t),
     getFocusPath: () => hierarchyPathKey(focusNode),
